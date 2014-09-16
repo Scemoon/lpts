@@ -1,0 +1,1119 @@
+# -*- coding:utf-8 -*-
+
+import os
+import lptxml
+from share import utils
+import lptlog
+import lptxls
+from error import  *
+import xlwt
+import string
+from lpt.lib import readconfig
+
+lptdir = os.getenv("LPTROOT")
+VERSION_FILE = os.path.join(lptdir, "Version")
+DOCS_FILE = os.path.join(lptdir, "config/docs.conf")
+TITLE = '''
+   ###############################################################
+                 --%s Performance Testing--                                                                                 
+   --author:     Scemoon                                           
+   --contact:    mengsan8325150@gmail.com                          
+   --version:    %s                                      
+   ###############################################################
+    ''' 
+    
+INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
+                    'Double-Precision-Whetstone',
+                    'Execl-Throughput',
+                    'FileCopy1024-bufsize2000-maxblocks',
+                    'FileCopy256-bufsize500-maxblocks',
+                    'FileCopy4096-bufsize8000-maxblocks',
+                    'Pipe-Throughput',
+                    'Pipe-based-ContextSwitching',
+                    'Process-Creation',
+                    'ShellScripts-1concurrent',
+                    'ShellScripts-8concurrent',
+                    'System-Call-Overhead',
+                    'System-Benchmarks-Index-Score'],
+        'x11perf':['aa-polygon',
+                        'ellipses',
+                        'images-and-blits',
+                        'rectangles',
+                        'text',
+                        'windows'
+                        #'Graphics-Benchmarks-Index-Score'
+                            ],
+        'glxgears':['Graphics-Benchmarks-Index-Score'],
+        'stream':['Copy', 'Add', 'Triad', 'Scale'],
+        'pingpong':["initialised", "completed", "total"],
+        'iozone':['write', 'rewrite', 'read', 'reread', 'randread', 'randwrite'],
+        'bonnie':["putc","putc_cpu","put_block","put_block_cpu","rewrite","rewrite_cpu",
+                "getc","getc_cpu","get_block","get_block_cpu","seeks","seeks_cpu","seq_create",
+                "seq_create_cpu","seq_stat","seq_stat_cpu","seq_del","seq_del_cpu","ran_create","ran_create_cpu",
+                "ran_stat","ran_stat_cpu","ran_del","ran_del_cpu" ],
+        'dbench_fio':['Throughtput', 'max_latency']
+           
+        }
+
+class XmlToTxt(lptxml.XmlResults):
+    '''
+    定义xml转换txt测试报告的方法
+    '''
+  
+    
+    def __init__(self, xml_file, txt_file):  
+        super(XmlToTxt, self).__init__(xml_file)
+        self.fp = open(txt_file, 'w')
+        
+    def file_close(self):
+        self.fp.flush()
+        self.fp.close()
+
+
+    def write(self, text, width=10, position='left', fillchar=' '):
+        newtext = utils.strwidth(text, width, position, fillchar)
+        self.fp.write(newtext)
+        
+    def set_title(self, tool):
+        self.fp.write('\n')   
+        #self.write(self.TXT_TITLE % tool, width=100, position='center')
+        self.fp.writelines(TITLE % (tool, utils.get_version(VERSION_FILE)))
+        self.fp.write("\n")
+
+    def set_text(self, text, No, title):
+        self.fp.write('\n') 
+        self.fp.write('\n') 
+        self.fp.write("  %s. %s" % (No, title1))
+        self.fp.write("  ========\n")
+        self.write(text, width=100, position="left")
+         
+    def set_testing_descripition(self, text):
+        self.set_text(text, 1, "概述")
+        
+    
+    def set_tool_description(self, text):
+        self.set_text(text, 2, "工具")
+        
+    def set_tool_parameter(self, text):
+        self.set_text(text, 3, "参数设定") 
+        
+    
+    def set_tool_parameter(self, text):
+        self.set_text(text, 4, "环境")    
+        
+    def set_result(self):
+        self.fp.write("  5. 测试数据")
+        self.fp.write("  ========\n")
+        self.fp.write("\n")
+        
+    def write_element_text(self, node, width):
+        '''定义写element内容的方法,写入所有node节点中所有element的text
+        '''
+        self.fp.write("\n")
+        self.fp.write("  ")
+        iter = node.get('iter')
+        self.write(iter, width=width)
+        for element in node:
+            self.write(element.text, width)
+        
+    def write_element_tag(self, node, width):
+        '''定义写element标签的方法, 写入node节点中所有element的标签
+        '''
+        self.fp.write("\n")
+        self.fp.write("  ")
+        self.write('Times', width=width)
+        for element in node:
+            self.write(element.tag, width=width)
+        self.fp.write("\n")
+        self.fp.write("  ")
+        self.write("-", width=width*(len(node)+1), fillchar='-' )
+        
+            
+    def write_nodes(self, nodes, width):
+        '''
+        '''
+        self.write_element_tag(nodes[0], width)
+        for node in nodes:
+            self.write_element_text(node, width)
+        self.fp.write("\n")
+        self.fp.write("  ")
+        self.write("-", width=width*(len(node)+1), fillchar='-' )
+               
+            
+    def write_horizontal_results(self, tool, width):
+        #判断tool result是否存在
+        if not self.search_tool_result_nodes(tool):
+            #lptlog.error("%s 中 不存在 %s 的测试数据"  % (self.xml_file, tool))
+            raise ValueError, "%s 中 不存在 %s 的测试数据"  % (self.xml_file, tool)
+        
+        #获取parallel并行组，type: string
+        parallelstring = self.get_tool_result_parallels(tool, key='parallels')
+        lptlog.debug("parallel数组字符串：%s " % parallelstring)
+        
+        #把parallelstring转换成数组
+        parallels = utils.check_int_list(parallelstring)
+        lptlog.debug("并行列表:%s" % parallelstring)
+        for parallel in parallels:
+            #result_parallel_nodes 并行数为parallel的节点列表
+            result_parallel_nodes = self.search_tool_result_parallel_nodes(tool, parallel)
+            if result_parallel_nodes is None:
+                lptlog.warning("%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel))
+                continue
+            self.fp.write("\n")
+            self.fp.write("\n")
+            self.fp.write("** %s 并行测试数据：" % parallel)
+            self.fp.write("\n   ==============\n")
+            lptlog.info("将写入并行数为 %s 的数据" % parallel)
+                
+            self.write_nodes(result_parallel_nodes, width) 
+        self.fp.write("\n")  
+            
+    def write_vertical_results(self, tool, width, tag_width):
+        #判断tool result是否存在
+        if not self.search_tool_result_nodes(tool):
+            lptlog.error("%s测试数据不存在或未进行测试" % tool)
+            raise NameError()
+        
+        #获取parallel并行组，type: string
+        parallelstring = self.get_tool_result_parallels(tool, key='parallels')
+        lptlog.debug("parallel数组字符串：%s " % parallelstring)
+        
+        #把parallelstring转换成数组
+        parallels = utils.check_int_list(parallelstring)
+        lptlog.debug("并行列表:%s" % parallelstring)
+        for parallel in parallels:
+            #result_parallel_nodes 并行数为parallel的节点列表
+            result_parallel_nodes = self.search_tool_result_parallel_nodes(tool, parallel)
+
+            if not result_parallel_nodes:
+                lptlog.warning("%s测试工具的%s并行测试数据为Null" %(tool, parallel))
+                continue
+            
+            self.fp.write("\n")
+            self.fp.write("\n")
+            self.fp.write("** %s并行测试数据：" % parallel)
+            self.fp.write("\n   ==============\n")
+            lptlog.info("将写入并行数为 %s 的数据" % parallel)
+            
+            #获取迭代值，返回list
+            times_list = []
+            for node in result_parallel_nodes:
+                times_list.append(self.get_result_attrib(node, "iter"))
+                
+            #获取指标名称
+            elements_tag_list = self.get_tool_element_tag(result_parallel_nodes[0])
+            
+            #首先写入row标题
+            self.fp.write("\n")
+            self.fp.write("  ")
+            self.write("TESTS", tag_width)
+            for iter in times_list:
+                self.write(iter, width)
+                
+            #写入row标题和data的分隔符
+            self.fp.write("\n") 
+            self.fp.write("  ")
+            self.write("-", width=width*(len(times_list))+tag_width, fillchar='-' )
+            
+            #开始写入数据
+            for element_tag in elements_tag_list:
+                self.fp.write("\n")
+                self.fp.write("  ")
+                self.write(element_tag, tag_width)
+                for iter in times_list:
+                    element_text = self.search_element_by_tagAndtimes(tool, element_tag, parallel, iter)[0]
+                    self.write(element_text, width)
+                    
+            self.fp.write("\n")
+            self.fp.write("  ")
+            self.write("-", width=width*(len(times_list))+tag_width, fillchar='-' )
+            self.fp.write("\n")
+            self.fp.write("\n")
+      
+            
+    def simple_report(self, tool, width, writeType='horizontal', tag_width=25):    
+        '''
+            txt格式测试报告结构，此函数只包含简单的标题和数据，详细的将在report函数中完成
+        '''
+        #写入标题
+        self.set_title(tool)
+        
+        #
+        if writeType=='horizontal':
+            self.write_horizontal_results(tool, width)
+        elif writeType=='vertical':
+            self.write_vertical_results(tool, width, tag_width)
+        else:
+            lptlog.warning("请指定txt测试报告方式：horizontal 或者 vertical")
+        
+        
+  
+  
+class XmlToXls(lptxml.XmlResults):  
+    '''creat xls report '''
+    def __init__(self, xml_file, xls_file):  
+        super(XmlToXls, self).__init__(xml_file)
+        self.xls_write = lptxls.Wxls()
+        self.xls_file = xls_file
+            
+    def report(self, tool, width=3000, writeType='horizontal', title_width=8000):
+        '''
+        @attention: 从result.xml文件中读取测试数据，并把测试数据转换成xls格式;
+        @param tool: 生成tool的xls测试报告
+        @param width: 表格宽度
+        @param writeType: 'horizontal',横向写入数据
+                          'veritcal',  纵向写入每组数据
+        
+        '''
+         #判断tool result是否存在
+        if not self.search_tool_result_nodes(tool)  :
+            #lptlog.error("%s 测试数据不存在或未进行测试" % tool)
+            raise ValueError, "%s 测试数据不存在或未进行测试" % tool
+        
+        #获取parallel并行组，type: string
+        parallelstring = self.get_tool_result_parallels(tool, key='parallels')
+        lptlog.debug("parallel数组字符串：%s " % parallelstring)
+        
+        #把parallelstring转换成数组
+        parallels = utils.check_int_list(parallelstring)
+        lptlog.debug("并行列表:%s" % parallelstring)
+        
+        tool_sheet = self.xls_write.sheet(tool)
+        #写入标题
+        title = "---%s Performance Results---"  % tool
+        self.xls_write.title(tool_sheet, title, rowmin=1, rowmax=5, colmin=1, colmax=5)
+        
+        row = 9
+        
+        for parallel in parallels:
+            result_parallel_nodes = self.search_tool_result_parallel_nodes(tool, parallel)
+            if  result_parallel_nodes is None:
+                lptlog.warning("%s并行 测试数据为Null" % parallel)
+                continue
+            
+            node_row = row
+            self.xls_write.write_cell(tool_sheet, "parallel %s " % parallel, node_row, 1)
+            row += 1
+            
+            if writeType=="horizontal":
+                self.xls_write.data_title(tool_sheet, ['TIMES'], node_row+1, col_start_index=1)
+                self.xls_write.data_title(tool_sheet, map(lambda x:x.tag, list(result_parallel_nodes[0])), node_row+1, col_start_index=2)
+                row += 1
+                for node in result_parallel_nodes:
+                    #self.xls_write.data(tool_sheet, [node.get("iter")], node_row+2, col_start_index=1)
+                    self.xls_write.data_seq(tool_sheet, node.get("iter"), node_row+2, 1)
+                    self.xls_write.data(tool_sheet, map(lambda x:float(x.text), list(node)), node_row+2, col_start_index=2)
+                    node_row += 1
+                    row += 1
+            elif writeType=="vertical":
+                    #获取迭代值，返回list
+                times_list = []
+                for node in result_parallel_nodes:
+                    times_list.append(self.get_result_attrib(node, "iter"))
+                    #首先写入row标题
+                self.xls_write.data_title(tool_sheet, ['TESTS'], node_row+1, col_start_index=1, colsizes=title_width)
+                self.xls_write.data_title(tool_sheet, times_list, node_row+1, col_start_index=2, colsizes=width)
+                row += 1
+            
+                    #获取指标名称
+                elements_tag_list = self.get_tool_element_tag(result_parallel_nodes[0])
+                
+                    #开始写入数据
+                for element_tag in elements_tag_list:
+                    #写入index指标
+                    self.xls_write.data(tool_sheet, [element_tag], node_row+2, col_start_index=1)
+                    #写入测试数据
+                    for iter in times_list:
+                            #element_text为list,只包含一个值
+                        element_text = self.search_element_by_tagAndtimes(tool, element_tag, parallel, iter)
+                        self.xls_write.data(tool_sheet, element_text, node_row+2, col_start_index=2+times_list.index(iter))
+                    node_row += 1
+                    row += 1
+            else:
+                lptlog.warning("请指定xls测试报告方式：horizontal 或者 vertical")
+            row += 2
+    
+    def save_report(self):
+        '''
+            定义保存report方法
+        '''
+        self.xls_write.save(self.xls_file)
+
+def report(result_xml, tools_list, report_file, format='xls', writeType='horizontal'):
+    '''
+        生成测试报告，默认生成xls测试报告
+        @param tools_list: result.xml中tool 列表
+        @param report_file: 测试报告名称
+        @param format: 报告格式
+        @param writeType：报告写入测试数据方式
+    '''
+ 
+    if format == 'xls':
+        xlsreport = XmlToXls(result_xml, report_file)
+        for tool in tools_list:
+            if tool in ("unixbench", "x11perf", "iozone"):
+                writeType="vertical"
+                
+                #创建xls测试报告
+            lptlog.info("开始创建 %s 的 %s 测试报告"  %(tool, format))
+            
+            try:
+                lptlog.info("开始写入 %s 测试数据到 %s 测试报告 " % (tool, format))
+                xlsreport.report(tool, writeType=writeType)
+                lptlog.info("""
+                 --------------------------------------------------------------
+                    创建 %s 的  %s 测试报告：PASS
+                 --------------------------------------------------------------
+                """ % (tool, format))
+            except Exception, e:
+                lptlog.error("""
+                 --------------------------------------------------------------
+                    创建 %s 的  %s 测试报告：FAIL
+                 --------------------------------------------------------------
+                """ % (tool, format))
+                lptlog.debug(e)
+                #lptlog.exception("%s 测试数据写入 %s Error" %(tool, report_file))
+                continue
+        lptlog.debug("保存测试报告")
+        xlsreport.save_report()
+            
+    elif format == 'txt':
+        for tool in tools_list:
+            #if tool in ("unixbench", "x11perf"):
+             #   writeType="vertical"
+                
+                #创建txt测试报告
+            lptlog.info("开始创建 %s 的 %s 测试报告"  %(tool, format))
+            txt_report_file = report_file.split(".txt")[0]+"_%s.txt" % tool
+            try:
+                txtops = XmlToTxt(result_xml, txt_report_file)
+                if tool in ("unixbench", "x11perf"):
+                    writeType="vertical"
+                    tag_width=40
+                else:
+                    tag_width=15
+                    
+                lptlog.debug("%s 写入方式: %s" %(tool, writeType))
+                txtops.simple_report(tool, width=15, writeType=writeType, tag_width=tag_width)
+                lptlog.info("""
+                 --------------------------------------------------------------
+                    创建 %s 的  %s 测试报告：PASS
+                 --------------------------------------------------------------
+                """ % (tool, format))
+            except Exception, e:
+                #lptlog.exception("创建 %s 的 %s 测试报告：FAIL" % (tool, format))
+                lptlog.error("""
+                 --------------------------------------------------------------
+                    创建 %s 的  %s 测试报告：FAIL
+                 --------------------------------------------------------------
+                """ % (tool, format))
+                lptlog.debug(e)
+                continue
+                
+    else:
+        lptlog.warning("暂不提供%s格式测试报告" % format)
+                 
+
+class Report(lptxml.XmlResults):
+    ''' ''' 
+    def __init__(self, xml, tool):
+        super(Report, self).__init__(xml)
+        self.tool = tool
+        self.tool_indexs = INDEX_KEYS[self.tool]
+        
+    def get_nodes(self):
+        return self.search_tool_result_nodes(self.tool)
+    
+    def get_parallel_nodes(self, parallel):
+        return search_tool_result_parallel_nodes(self.tool, parallel)
+    
+    def get_parallels(self):
+        '''get parallels 
+        @return: list'''
+        
+        parallelstring = self.get_tool_result_parallels(self.tool, key='parallels')
+        return utils.check_int_list(parallelstring)
+    
+    def check_tool_nodes(self):
+        if not self.search_tool_result_nodes(self.tool):
+            return False
+        else:
+            return True
+        
+    def get_parallel_nodes(self, parallel):
+        '''获取某并行时，测试数据'''
+        return self.search_tool_result_parallel_nodes(self.tool, parallel)
+    
+    def get_hor_data_title(self):
+        return self.tool_indexs
+    
+    def get_times(self, node):
+        return  self.get_result_attrib(node, "iter")
+        
+    def get_parallel_hor_data(self, node):
+        ''' @return: dict'''
+        parallel_dict = {}
+        for index in self.tool_indexs:
+            parallel_dict[index] = self.get_result_text(node, index)
+            
+        return parallel_dict
+    
+    def get_ver_data_title(self, nodes):
+        return [ self.get_times(node) for node in nodes ] 
+    
+    def get_ver_data(self, index, parallel, nodes):
+        iter_dict = {}
+        for iter in self.get_ver_data_title(nodes):
+            iter_dict[iter] = self.search_element_by_tagAndtimes(self.tool, index, parallel, iter)[0]
+            
+        return iter_dict
+    
+class TxtReport(Report):
+    '''  create txt report'''      
+    def __init__(self, xml_file, tool, txt_file, width, tag_width, writeType):  
+        super(TxtReport, self).__init__(xml_file, tool)
+        self.fp = open(txt_file, 'w')
+        self.width = width
+        self.tag_width = tag_width
+        self.writeType = writeType
+        
+        
+    def file_close(self):
+        self.fp.flush()
+        self.fp.close()
+
+
+    def write(self, text, width=10, position='left', fillchar=' '):
+        newtext = utils.strwidth(text, width, position, fillchar)
+        self.fp.write(newtext)
+        
+    def set_title(self):
+        self.fp.write('\n')   
+        #self.write(self.TXT_TITLE % tool, width=100, position='center')
+        self.fp.writelines(TITLE % (self.tool, utils.get_version(VERSION_FILE)))
+        self.fp.write("\n")
+        
+    
+    def _set_section_title(self, seq, title, width=30):
+        self.fp.write('\n') 
+        self.fp.write('\n') 
+        self.fp.write("  %s. %s" % (seq, title))
+        self.fp.write("\n  ========\n")
+        
+    def _write_text(self, text, width):
+        u_text = utils.to_unicode(text)
+        n = 0
+        while True:
+            if len(u_text[n:]) > width:
+                if n == 0:
+                    end = n + width - 1
+                else:
+                    end = n + width
+                self.write(utils.from_unicode(u_text[n:(n+width-1)]), width=width, position="left")
+                self.fp.write("\n")
+                n = + end
+                continue
+            else:
+                self.write(utils.from_unicode(u_text[n:]), width=width, position="left")
+                self.fp.write("\n")
+                break
+         
+    def _get_config_value(self, key):
+        return readconfig.get_conf_instance(DOCS_FILE).get_str_value(self.tool, key)
+    
+    def set_tool_description(self, width=50):
+        '''这里的width指unicode宽度'''
+        text = self._get_config_value("descriptions")
+        self._set_section_title("一", "概述" )
+        self.fp.write("  ")
+        self._write_text(text, width)
+    
+    def set_tool_index(self, width=50):
+        self._set_section_title("二", "指标" )
+        for index in self.tool_indexs:
+            text = "  %s: %s" %(index, self._get_config_value(index))
+            self._write_text(text, width)
+            #self.fp.write("\n")
+            
+    def set_result_title(self):
+        
+        self._set_section_title("三", "测试数据")
+        
+    def write_element_text(self, node, width):
+        '''定义写element内容的方法,写入所有node节点中所有element的text
+        '''
+        self.fp.write("\n")
+        self.fp.write("  ")
+        #iter = node.get('iter')
+        iter = self.get_times(node)
+        self.write(iter, width=width)
+        parallel_result_dict = self.get_parallel_hor_data(node)
+        for index in self.tool_indexs:
+            self.write(parallel_result_dict[index], width)
+        
+    def write_element_tag(self, width):
+        '''定义写element标签的方法, 写入node节点中所有element的标签
+        '''
+        self.fp.write("\n")
+        self.fp.write("  ")
+        self.write('Times', width=width)
+        #for element in node:
+            #self.write(element.tag, width=width)
+        for index in self.get_hor_data_title():
+            self.write(index, width=width)
+        self.fp.write("\n")
+        self.fp.write("  ")
+        self.write("-", width=width*(len(self.tool_indexs)+1), fillchar='-' )
+        
+            
+    def write_nodes(self, nodes, width):
+        '''
+        '''
+        self.write_element_tag(width)
+        for node in nodes:
+            self.write_element_text(node, width)
+        
+        self.fp.write("\n")
+        self.fp.write("  ")
+        self.write("-", width=width*(len(node)+1), fillchar='-' )
+        
+    def write_horizontal_results(self):
+      
+        parallels = self.get_parallels()
+        lptlog.debug("并行列表:%s" % utils.list_to_str(parallels))
+        for parallel in parallels:
+            #result_parallel_nodes 并行数为parallel的节点列表
+            #result_parallel_nodes = self.search_tool_result_parallel_nodes(tool, parallel)
+            result_parallel_nodes = self.get_parallel_nodes(parallel)
+            if result_parallel_nodes is None:
+                lptlog.warning("%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel))
+                continue
+            self.fp.write("\n")
+            self.fp.write("\n")
+            self.fp.write("** %s 并行测试数据：" % parallel)
+            self.fp.write("\n   ==============\n")
+            lptlog.info("将写入并行数为 %s 的数据" % parallel)
+                
+            self.write_nodes(result_parallel_nodes, self.width) 
+        self.fp.write("\n")  
+            
+    def write_vertical_results(self):
+        #判断tool result是否存在
+        parallels = self.get_parallels()
+        lptlog.debug("并行列表:%s" % utils.list_to_str(parallels))
+        for parallel in parallels:
+            #result_parallel_nodes 并行数为parallel的节点列表
+            #result_parallel_nodes = self.search_tool_result_parallel_nodes(tool, parallel)
+            result_parallel_nodes = self.get_parallel_nodes(parallel)
+            if result_parallel_nodes is None:
+                lptlog.warning("%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel))
+                continue
+            self.fp.write("\n")
+            self.fp.write("\n")
+            self.fp.write("** %s并行测试数据：" % parallel)
+            self.fp.write("\n   ==============\n")
+            lptlog.info("将写入并行数为 %s 的数据" % parallel)
+            
+            #获取迭代值，返回list
+            #times_list = []
+            #for node in result_parallel_nodes:
+               # times_list.append(self.get_result_attrib(node, "iter"))
+            times_list = [ self.get_times(node) for node in result_parallel_nodes ]
+                
+            #获取指标名称
+            #elements_tag_list = self.get_tool_element_tag(result_parallel_nodes[0])
+            elements_tag_list = self.tool_indexs
+            
+            #首先写入row标题
+            self.fp.write("\n")
+            self.fp.write("  ")
+            self.write("TESTS", self.tag_width)
+            for iter in times_list:
+                self.write(iter, self.width)
+                
+            #写入row标题和data的分隔符
+            self.fp.write("\n") 
+            self.fp.write("  ")
+            self.write("-", width=self.width*(len(times_list))+self.tag_width, fillchar='-' )
+            
+            #开始写入数据
+            for element_tag in elements_tag_list:
+                self.fp.write("\n")
+                self.fp.write("  ")
+                self.write(element_tag, self.tag_width)
+                for iter in times_list:
+                    element_text = self.search_element_by_tagAndtimes(self.tool, element_tag, parallel, iter)[0]
+                    self.write(element_text, self.width)
+                    
+            self.fp.write("\n")
+            self.fp.write("  ")
+            self.write("-", width=self.width*(len(times_list))+self.tag_width, fillchar='-' )
+            self.fp.write("\n")
+            self.fp.write("\n")
+      
+    def report(self):
+        lptlog.debug("检查是否包含 %s result" % self.tool)
+        if not self.check_tool_nodes():
+            raise ValueError, " %s 测试数据为空..." % self.tool
+        #nodes = self.get_nodes()
+        self.set_title()
+        self.set_tool_description()
+        self.set_tool_index()
+        self.set_result_title()
+        lptlog.debug("数据写入方式： %s" % self.writeType)
+        if self.writeType == "horizontal":
+            self.write_horizontal_results()
+        elif self.writeType == "vertical":
+            self.write_vertical_results()
+            
+def txt_report(xml, tools_list, reportfile, width=15):
+    ''' create txt report'''
+    for tool in tools_list:
+        #创建txt测试报告
+        lptlog.info("开始创建 %s 的 txt测试报告"  % tool)
+        if len(tools_list) > 1:
+            txt_report_file = reportfile.split(".txt")[0]+"_%s.txt" % tool
+        else:
+            txt_report_file = reportfile
+            
+        try:
+            #txtops = XmlToTxt(result_xml, txt_report_file)
+            
+            if tool in ("unixbench", "x11perf", "bonnie"):
+                writeType = "vertical"
+                tag_width =40
+            else:
+                writeType = "horizontal"
+                tag_width = 15
+                
+            txtops = TxtReport(xml, tool, txt_report_file, width, tag_width, writeType)  
+            txtops.report()
+            lptlog.info("""
+                 --------------------------------------------------------------
+                    创建 %s 的  txt测试报告：PASS
+                 --------------------------------------------------------------
+            """ % tool)
+        except Exception, e:
+            lptlog.exception("创建 %s 的  txt测试报告：FAIL" % tool)
+            lptlog.error("""
+                 --------------------------------------------------------------
+                    创建 %s 的  txt测试报告：FAIL
+                 --------------------------------------------------------------
+            """ % tool)
+            lptlog.debug(e)
+            continue
+                
+                 
+        
+class XlsReport(Report):
+    '''create xls report'''
+    def __init__(self, xml, tool, xls_object, writeType="horizontal"):
+        '''@parameter xls_object: xls write object, lptxls.Wxls()'''
+        super(XlsReport, self).__init__(xml, tool)
+        self.xls_write = xls_object
+        self.sheet = xls_object.sheet(tool)
+        self.writeType = writeType
+        
+    def write_title(self, row_width=3, col_width=4):
+        title = "---%s Performance Results---"  % self.tool
+        self.xls_write.title(self.sheet, title, rowmin=1, rowmax=1+row_width, colmin=1, colmax=col_width)
+        return row_width + 1 + 1
+        
+    
+    def write_hor_data_title(self, row):
+        self.xls_write.data_title(self.sheet, ["TIMES"], row)
+        self.xls_write.data_title(self.sheet, self.get_hor_data_title(), row, col_start_index=2)
+        return row + 1
+        
+    def write_parallel_data_des(self, parallel, row):
+        self.xls_write.write_cell(self.sheet, "%s Parallel Data" % parallel, row, 1)
+        return row + 1
+    
+    def write_parallel_hor_data(self, nodes, row):
+        
+        for node in nodes:
+            self.xls_write.data_seq(self.sheet, self.get_times(node), row)
+            node_dict = self.get_parallel_hor_data(node)
+            self.xls_write.data(self.sheet, map(float, [node_dict.get(index) for index in self.tool_indexs]), row, col_start_index=2)
+            row = row + 1
+            
+        return row
+    
+    def write_ver_data_title(self, row, nodes):
+         self.xls_write.data_title(self.sheet, ["TESTS"], row)
+         self.xls_write.data_title(self.sheet, self.get_ver_data_title(nodes), row, col_start_index=2 )
+         return row + 1
+    
+    def write_ver_data(self, row, parallel, nodes):
+        for index in self.tool_indexs:
+            self.xls_write.data_seq(self.sheet, index, row)
+            iter_dict = self.get_ver_data(index, parallel, nodes)
+            self.xls_write.data(self.sheet, map(float, [ iter_dict.get(iter) for iter in self.get_ver_data_title(nodes)]), row, col_start_index=2)
+            row = row + 1
+        return row
+    
+    def hor_report(self):
+        '''横向写入方法'''
+        
+        lptlog.debug("写入标题")
+        colwidth = len(self.get_hor_data_title())
+        row = self.write_title(col_width=colwidth+1)
+        #空一行
+        row = row + 2
+        parallels = self.get_parallels()
+        lptlog.debug("获取 %s 测试并行数: %s" % (self.tool, utils.list_to_str(parallels)))
+        for parallel in parallels:
+            parallel_nodes = parallel_nodes = self.get_parallel_nodes(parallel)
+            row = self.write_parallel_data_des(parallel, row)
+            row = self.write_hor_data_title(row)
+            lptlog.debug("写入 指标名称 PASS")
+            #空一行
+            #row = row + 1
+            row = self.write_parallel_hor_data(parallel_nodes, row)
+            lptlog.debug("写入 %d 并行 测试数据:PASS" % parallel)
+            #空二行
+            row = row + 2
+    
+    def ver_report(self):
+        lptlog.debug("写入标题")
+        colwidth = len(self.get_ver_data_title(self.get_nodes())) / len(self.get_parallels())
+        row = self.write_title(col_width=colwidth+1)
+        row = row + 2
+        #空一行
+      
+        parallels = self.get_parallels()
+        lptlog.debug("获取 %s 测试并行数: %s" % (self.tool, utils.list_to_str(parallels)))
+        for parallel in parallels:
+            parallel_nodes = self.get_parallel_nodes(parallel)
+            row = self.write_parallel_data_des(parallel, row)
+            row = self.write_ver_data_title(row, parallel_nodes)
+            row = self.write_ver_data(row, parallel, parallel_nodes)
+            row = row + 2
+            
+              #加大第一列宽度
+        self.sheet.col(1).width = 9000
+              
+    def report(self):
+        lptlog.debug("检查是否包含 %s result" % self.tool)
+        if not self.check_tool_nodes():
+            raise VauleError, " %s 测试数据为空..."
+        #nodes = self.get_nodes()
+   
+        lptlog.info("数据写入方式： %s" % self.writeType)
+        if self.writeType == "horizontal":
+            self.hor_report()
+        elif self.writeType == "vertical":
+            self.ver_report()
+        
+               
+              
+def xls_report(xml, tools, reportfile, writeType="horizontal"):
+    ''''''
+    #初始化xls实例
+    Wxls_object = lptxls.Wxls()
+    for tool in tools:
+        if tool in ("unixbench", "x11perf", "glxgears", "bonnie"):
+            writeType="vertical"
+        else:
+            writeType = "horizontal"                
+             #创建xls测试报告
+        lptlog.info("开始创建 %s xls测试报告"  % tool)
+            
+        try:
+            lptlog.info("开始写入 %s 测试数据到 xls测试报告 " % tool)
+            xlsreport = XlsReport(xml, tool, Wxls_object, writeType)
+            xlsreport.report()
+            lptlog.info("""
+                 --------------------------------------------------------------
+                    创建 %s 的  xls测试报告：PASS
+                 --------------------------------------------------------------
+            """ % tool)
+        except Exception, e:
+            lptlog.error("""
+                 --------------------------------------------------------------
+                    创建 %s 的  xls测试报告：FAIL
+                 --------------------------------------------------------------
+            """ % tool)
+            lptlog.debug(e)
+            lptlog.exception("%s 测试数据写入 %s Error" %(tool, reportfile))
+            continue
+        
+        lptlog.debug("保存测试报告")
+        Wxls_object.save(reportfile)
+           
+
+    
+def set_result_file(results_dir, tool, id, type):
+    '''
+    在results_dir中保存report
+    '''
+    tool_dir = os.path.join(results_dir, tool)
+    if not  os.path.isdir(tool_dir):
+        os.makedirs(tool_dir)
+        
+    result_file = "%s-%s.%s" % (tool, id, type)
+    result_abs_file = os.path.join(tool_dir, result_file)
+    return result_abs_file
+
+
+           
+def save_result(tool, result_file, xml_file, width=15, writeType='horizontal', tag_width=25, format='txt'): 
+    '''默认保存的report 格式：txt
+    @attention: 暂时只支持该格式，其他格式如xls等，需要手动生成
+    '''
+   
+    if tool in ("unixbench", "x11perf"):
+        writeType="vertical"
+        tag_width=40
+        
+    try:
+        #txtops = XmlToTxt(xml_file, result_file)
+        #txtops.simple_report(tool, width, writeType, tag_width)
+        txtops = TxtReport()
+        lptlog.info("创建 %s 的 %s 测试报告：PASS" %(tool, format))
+        lptlog.info("%s txt测试报告保存于: %s" % (tool, result_file))
+    except Exception, e:
+        #lptlog.exception("创建 %s 的 %s 测试报告：FAIL" %(tool, format))
+        lptlog.error("创建 %s 的 %s 测试报告：FAIL" %(tool, format))
+        lptlog.debug(e)
+
+class ToolCompareError(Exception):
+    ''' '''
+    
+class ToolCompare(object):
+    ''''''
+    def __init__(self, tool, xmls_dict):
+        self.tool = tool
+        self.xmls_dict = xmls_dict
+        self.xmls_keys = xmls_dict.keys()
+        self.results_xml_list = xmls_dict.values()
+        self.tool_indexs = INDEX_KEYS[self.tool]
+              
+    def get_parallels(self):
+        parallelstring = lptxml.get_result_parallels(self.results_xml_list[0], self.tool)
+        return utils.check_int_list(parallelstring)
+    
+    def check_parallels(self):
+        '''检查parallels是否相同，相同则进行比较，不同则结束比较
+        @param:limit result.xml limit to 10
+        @return:boolean   '''
+        parallels=lptxml.get_result_parallels(self.results_xml_list[0], self.tool)
+        if parallels is None:
+            return False
+        
+        for result_xml in self.results_xml_list:
+            if parallels == lptxml.get_result_parallels(result_xml, self.tool):
+                continue
+            else:
+                return False
+        return True
+            
+    
+    def get_parallel_result(self, result_xml, parallel):
+        '''@param parallel: 并行数
+        @param result_xml:result xml 
+        @param indexs:测试指标
+        @return: dict'''
+        parallel_result_dict = {}
+        
+        xmlresults = lptxml.XmlResults(result_xml)
+        lptlog.debug('匹配times="Average", parallel=%s 的results node' % parallel)
+        nodes = xmlresults.search_nodes_by_parallelAndtimes(self.tool, parallel, "Average")
+        if nodes:
+            for key in self.tool_indexs:
+                parallel_result_dict[key] = xmlresults.get_result_text(nodes[0], key)
+            return parallel_result_dict
+        else:
+            raise ToolCompareError, "nodes 期望不为空"
+        
+
+    def get_index_result(self, index, result_xml):
+        '''@param index: 指标
+        @param result_xml: result xml
+        @param parallels:并行数
+        @return: dict'''
+        index_result_dict = {}
+        xmlresults = lptxml.XmlResults(result_xml)
+        for parallel in self.get_parallels():
+            values = xmlresults.search_element_by_tagAndtimes(self.tool, index, parallel, "Average")
+            if not values:
+                lptlog.warning("获取times='Average', index=%s, parallel=%s 的值为空，赋值0")
+                value = 0
+            else:
+                value = float(values[0])
+            lptlog.debug('匹配times="Average", index=%s , parallel=%s 的results value:%s' % (index, parallel, value))
+            index_result_dict[parallel] = value
+        
+        return index_result_dict
+    
+    def get_tool_keys(self):
+        return INDEX_KEYS[self.tool]
+    
+class ParallelsError(Exception):
+    ''''''
+       
+class CompareToolXls(ToolCompare):
+    ''''''
+    def __init__(self, tool, tool_sheet, xls_object, xmls_dict):
+        super(CompareToolXls, self).__init__(tool, xmls_dict)
+        self.xls_write = xls_object
+        self.sheet = tool_sheet
+        self.parallels = self.get_parallels()
+        if self.check_parallels():
+            lptlog.debug("results中parallels相同")
+        else:
+            raise ParallelsError, "%s 对比， parallels不同"  % self.tool
+        
+    def write_title(self, row_width=3, col_width=4):
+        col_width = len(self.tool_indexs)
+        cmp_title = "---%s Compare Results---" % self.tool
+        self.xls_write.title(self.sheet, cmp_title, rowmin=1, rowmax=1+row_width, colmin=1, colmax=1+col_width )
+        
+    
+    def write_descriptions(self, row):
+        pass
+    
+    def write_parallel_data_des(self, parallel, row):
+        self.xls_write.write_cell(self.sheet, "%s Parallel Data" % parallel, row, 1)
+    
+    def write_parallel_data_title(self, row, col=1):
+        self.xls_write.data_title(self.sheet, ['TEST'], row, col_start_index=col)
+        self.xls_write.data_title(self.sheet, self.tool_indexs, row, col_start_index=col+1)
+    
+    def write_parallel_data(self, parallel, row, col=1):
+        for xml_name in self.xmls_keys:
+            self.xls_write.data_seq(self.sheet, xml_name, row)
+            result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
+            self.xls_write.data(self.sheet, map(float, [result_dict.get(index) for index in self.tool_indexs]), row, col_start_index=col+1)
+            row = row+1
+            
+        return row
+    
+    def write_index_data_des(self, index, row):
+        self.xls_write.write_cell(self.sheet, "%s Index Data" % index, row, 1)
+        
+    def write_index_data_title(self, row, col=1):
+        self.xls_write.data_title(self.sheet, ['PARALLEL'], row, col_start_index=col)
+        self.xls_write.data_title(self.sheet, self.parallels, row, col_start_index=col+1)
+        
+    def write_index_data(self, index, row, col=1):
+        for xml_name in self.xmls_keys:
+            self.xls_write.data_seq(self.sheet, xml_name, row)
+            self.xls_write.data(self.sheet, map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values()), row, col_start_index=col+1)
+            row = row+1
+            
+        return row
+    
+def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="parallel"):
+    ''' tool xls compare report'''
+    tool_cmp_object = CompareToolXls(tool, tool_sheet, xls_object, xmls_dict)
+    lptlog.debug("%s sheet 写入标题" % tool)
+    tool_cmp_object.write_title()
+    if writeType=="parallel":
+        row = 8
+        for parallel in tool_cmp_object.parallels:
+            tool_cmp_object.write_parallel_data_des(parallel, row)
+            tool_cmp_object.write_parallel_data_title(row+1)
+            row = tool_cmp_object.write_parallel_data(parallel, row+2)
+            row = row + 2
+            
+    elif writeType=="index":
+        row = 8
+        for parallel in tool_cmp_object.parallels:
+            tool_cmp_object.write_index_data_des(parallel, row)
+            tool_cmp_object.write_index_data_title(row+1)
+            row = tool_cmp_object.write_index_data(parallel, row+2)
+            row = row + 2
+     
+     
+class Compare(object):
+    '''creat对比测试报告'''
+        
+    def __init__(self, results_xml_list, report_file,
+                  input_tools, input_name_list):
+        '''获取对比工具集和result.xml集'''
+        self.results_xml_list = results_xml_list
+        self.num = self.get_cmp_num()
+        self.report_file = report_file
+        self.input_name_list = input_name_list
+        self.input_tools = input_tools
+        
+    def get_cmp_num(self, limit=5):
+        '''限定对比数'''
+        num = len(self.results_xml_list)
+        if num < 2:
+            lptlog.warning("2<=期望result.xml数量<=%d" % limit)
+        if num > limit:
+            return limit
+        else:
+            return num
+        
+    def get_cmp_xml(self):
+        return self.results_xml_list[:self.num]
+    
+    def set_xml_name(self):
+        if not self.input_name_list:
+            xml_name_list = [ "CMP_%s" % letter for letter in list(string.uppercase)]
+        else:
+            if len({}.fromkeys(self.input_name_list).keys()) < self.get_cmp_num():
+                lptlog.warning("请输入正确的名称数，期望：不重复名称 >%d 个 " % self.get_cmp_num())
+                sys.exit()
+            else:
+                xml_name_list = self.input_name_list[:self.get_cmp_num()]
+        return xml_name_list
+    
+    def get_xmls_dict(self):
+        xmls_dict = {}
+        for l, v in zip(tuple(self.set_xml_name()), tuple(self.get_cmp_xml())):
+            xmls_dict[l] = v
+        return xmls_dict
+    
+    def get_cmp_tools(self):
+        '''只对比多个result.xml中都包含的测试工具, 获取最终对比测试工具
+        @return: 最终测试的tools列表'''
+        if not self.input_tools:
+            tools = lptxml.get_result_tools(self.results_xml_list[0])
+        else:
+            tools = self.input_tools
+         
+        for results_xml in self.get_cmp_xml()[1:]:
+            results_xml_tools = lptxml.get_result_tools(results_xml)
+            tools = [ tool for tool in tools if tool in results_xml_tools ]
+        
+        return tools
+    
+class XlsCompare(Compare):
+    ''' Xls Compare report'''
+    def __init__(self, results_xml_list, report_file, input_tools, input_name_list):
+        super(XlsCompare, self).__init__(results_xml_list, report_file, input_tools, input_name_list)  
+        self.xls_write = lptxls.Wxls()
+        self.xmls_dict = self.get_xmls_dict()
+    
+    
+    def cmp_tools(self):
+        tools =  self.get_cmp_tools()
+        if not tools:
+            raise ValueError, "result.xml中不包含相同的tool"
+        lptlog.info("----最终对比工具: %s " % utils.list_to_str(tools))
+        for tool in tools:
+            lptlog.debug("创建 %s sheet" % tool)
+            tool_sheet = self.xls_write.sheet(tool)
+            try:
+                lptlog.info("开始创建 %s 对比测试报告"  % tool)
+                compare_tool_xls(tool, tool_sheet, self.xls_write, self.xmls_dict, writeType="parallel")
+                lptlog.info("""
+                 --------------------------------------------------------------
+                         创建 %s 对比测试报告：PASS
+                 --------------------------------------------------------------
+                """ % tool)
+            except Exception:
+                lptlog.error("""
+                 --------------------------------------------------------------
+                         创建 %s 对比测试报告：FAIL
+                 --------------------------------------------------------------
+                """ % tool)
+                lptlog.exception("")
+                continue
+            
+    def save(self):
+        self.xls_write.save(self.report_file)

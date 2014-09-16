@@ -1,0 +1,80 @@
+	LPT3 使用方法
+-------------------------------------------------------
+一. 创建测试任务
+
+1.确定需要选用的测试工具，如:stream
+
+2.修改parameters/default.conf中stream参数定义，如：
+	TESTMODE = custom		//自定义方式
+   PARALLEL=2,4,8  	//将测试2、4、8并行
+   TIMES = 5           //测试次数5次
+  
+3.创建测试任务, 如:
+   ./lpt.py --create -t stream -f jobs.xml -p parameters/default.conf
+   如果创建两个以上测试工具，可以如下操作：
+   ./lpt.py --create -t stream -t iozone
+   也可以通过-g参数指定多个工具，用“，”隔开，但工具之间不能有空格，如：
+   ./lpt.py --create -g stream,iozone
+    
+4. -f 指定jobs.xml,默认为db/jobs.xml
+
+5.目前支持的工具有:stream,unixbench,x11perf,glxgears,
+		  pingpong,iozone,bonnie,dbench(fio)
+-------------------------------------------------------
+二.运行测试任务
+
+1.指定测试工具运行，如
+  ./lpt.py --run -t stream
+
+2. 指定多个工具运行
+  ./lpt.py --run -t stream -t iozone
+  也可以用-g参数指定
+  ./lpt.py --run -g stream,iozone
+
+3. 运行job中所有的工具
+  ./lpt.py --run 
+  
+4. 可以使用-f指定jobs.xml文件，默认为db目录的jobs.xml
+
+5. -i 指定jobs.xml文件中的任务ID, 可以通过-l参数查看
+
+6. -c 清理测试环境
+
+-------------------------------------------------------  
+三.生成测试报告
+
+1.目前ltp支持xls、txt测试报告
+
+2.result.xml中所有测试工具都生成测试报告
+  ./lpt.py --report -F xls -R ./db/result*.xml -r reportname -d resultDir
+  参数说明：
+  	-F：指定报告格式，不指定时默认为xls
+  	-R: 指定xml测试数据，存放在db目录（必须）
+  	-r:指定测试报告名称，可以不写
+  	-d:指定报告存放目录，默认为results目录
+  	
+ 3.也可使用-t或者-g参数指定测试工具
+ 
+ 4.生成对比测试报告
+   ./lpt.py --compare -g stream,pingpong -X ./db/result1.xml,./db/result2.xml,./db/result3.xml -r compare_result -N result1,result2,result3
+  参数说明：
+    -g:指定工具集合,也可以用-t指定单个工具
+    -X：指定result.xml，必须用逗号隔开，并且中间不能有空格
+    -N：指定result.xml对应的自定义名称，必须用逗号隔开，并且中间不能有空格
+    -r:指定报告名称
+    
+ -------------------------------------------------------
+ 四.通用参数
+
+ 1. -L 指定日志输出级别，包括debug、info、warning、 error 、critical 、exception， 默认info
+ 
+ 2. -q 关闭屏幕和文件输出
+ 
+ 3. -v 打开屏幕和文件输出
+ 
+ -------------------------------------------------------
+ 五. 查看jobs.xml文件中的任务
+    ./lpt.py -l
+ 
+NOTE:
+  1.如果需要执行unixbench多并行测试，需要对python中的subprocess.py PATCH， patch存放在config/目录中...
