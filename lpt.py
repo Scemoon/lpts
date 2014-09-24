@@ -50,7 +50,7 @@ for dir in (DB_DIR, RESULTS_DIR, BIN_DIR, TMP_DIR):
         os.makedirs(dir, mode=644)
      
 JOBS_XML = os.path.join(DB_DIR, 'jobs.xml')
-VERSION_FILE = os.path.join(LPTROOT, 'Version')
+VERSION_FILE = os.path.join(LPTROOT, 'release')
 defaultParameter = os.path.join(LPTROOT, "parameters/default.conf")
 
 
@@ -374,7 +374,6 @@ class Lpt:
                 if opts.jobs_list:
                     #检查是否存在jobs xml文件
                     if not os.path.isfile(self.jobs_xml):
-                        print self.jobs_xml
                         #lptlog.warning("缺失jobs文件，请核对jobs文件或者重新创建job")
                         #raise NameError("")
                         raise ValueError, "缺失jobs文件，请核对jobs文件或者重新创建job"
@@ -389,7 +388,7 @@ class Lpt:
             lptlog.error("Bad option or value")
             lptlog.debug(e)
         except Exception, e:
-            lptlog.exception("测试中遇到异常情况，如果需要，请联系作者！！！！\n")
+            #lptlog.exception("测试中遇到异常情况，如果需要，请联系作者！！！！\n")
             lptlog.error(e)
 def main():
    lpt= Lpt()

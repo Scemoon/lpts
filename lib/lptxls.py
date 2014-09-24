@@ -138,4 +138,5 @@ class Wxls(base_xls.Write):
                 self.write(sheet, row, index, data, data_style())
                 index += 1
                 
-                
+    def insert_img(self, sheet, img, row, col):
+        sheet.insert_bitmap(img, row, col, scale_x=1, scale_y=1)

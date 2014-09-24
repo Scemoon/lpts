@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import os
+import time
 import lptxml
 from share import utils
 import lptlog
@@ -9,10 +10,20 @@ from error import  *
 import xlwt
 import string
 from lpt.lib import readconfig
+from lpt.lib import chart
+from pychart import tick_mark
+from PIL import Image
+from multiprocessing import Process
+
 
 lptdir = os.getenv("LPTROOT")
-VERSION_FILE = os.path.join(lptdir, "Version")
+VERSION_FILE = os.path.join(lptdir, "release")
 DOCS_FILE = os.path.join(lptdir, "config/docs.conf")
+lpttmpdir = os.path.join(lptdir, "tmp")
+tmpdir = os.path.join("/tmp/lpt")
+if not os.path.exists(tmpdir):
+    os.makedirs(tmpdir)
+    
 TITLE = '''
    ###############################################################
                  --%s Performance Testing--                                                                                 
@@ -55,7 +66,12 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
            
         }
 
+tick_mark_list = [tick_mark.star, tick_mark.plus, tick_mark.dia, tick_mark.tri, tick_mark.dtri, 
+             tick_mark.circle1, tick_mark.blacksquare, tick_mark.blackdia, tick_mark.blackdtri,
+              tick_mark.gray70square, tick_mark.gray70dia, tick_mark.gray70dtri]
 
+
+ 
 def get_config_value(key, tool, config=DOCS_FILE):
         return readconfig.get_conf_instance(config).get_str_value(tool, key)
 
@@ -116,6 +132,33 @@ class Report(lptxml.XmlResults):
     #def get_config_value(self, key):
      #   return readconfig.get_conf_instance(DOCS_FILE).get_str_value(self.tool, key)
     
+    def get_parallel_data(self, parallel):
+        average_nodes = self.search_nodes_by_parallelAndtimes(self.tool, parallel, "Average")
+        if average_nodes:
+            parallel_result_list = []
+            for key in self.tool_indexs:
+                parallel_result_list.append(self.get_result_text(average_nodes[0]), key)
+        else:
+            raise ValueError, "平均值为空"
+        return parallel_result_list
+    
+    def get_index_data(self, index):
+        '''@param:
+            @return: list: '''
+    
+        index_result_list = []
+        for parallel in self.get_parallels():
+            values = self.search_element_by_tagAndtimes(self.tool, index, parallel, "Average")
+            if not values:
+                lptlog.warning("获取times='Average', index=%s, parallel=%s 的值为空，赋值0")
+                value = 0
+            else:
+                value = float(values[0])
+                lptlog.debug('匹配times="Average", index=%s , parallel=%s 的results value:%s' % (index, parallel, value))
+            index_result_list.append(value)
+        return index_result_list
+
+
 class TxtReport(Report):
     '''  create txt report'''      
     def __init__(self, xml_file, tool, txt_file, width, tag_width, writeType):  
@@ -394,6 +437,7 @@ class XlsReport(Report):
     def write_result_title(self, row):
         self.xls_write.section_title(self.sheet, "三.  结果", row)
         return row + 1
+
         
     def write_hor_data_title(self, row):
         self.xls_write.data_title(self.sheet, ["TIMES"], row)
@@ -446,6 +490,54 @@ class XlsReport(Report):
             
         return colwidth
     
+    def _tran_png_to_bmp(self, pngfile):
+        bmpfile = pngfile.split('.')[0]+".bmp"
+        Image.open(pngfile).convert("RGB").save(bmpfile)
+        return bmpfile
+
+    def _gen_index_graphic(self, index, graphic_name, title):
+        Y_max = max(self.get_index_data(index))
+        parallel_results_list = [self.get_parallels(), self.get_index_data(index)]
+        graphic = chart.Draw(map(list, zip(*parallel_results_list)), graphic_name, title)
+        xais = graphic.set_X("parallels")
+        yais = graphic.set_Y("Results", tic_interval=Y_max/6)
+        ar = graphic.creat_area((300, 100), xais, yais)
+        plot = graphic.creat_bar_plot(index)
+        graphic.area_add_plot(ar, [plot])
+        graphic.draws(ar)
+        
+    def gen_index_graphic(self, graphic_name="lpt"):
+        for index in self.tool_indexs:
+            index_name = graphic_name
+            index_name = os.path.join(tmpdir,"%s_%s_%s" % (index_name, self.tool, index))
+            try:
+                self._gen_index_graphic(index, index_name, index)
+            except Exception,e:
+                lptlog.error("gen graphic error: %s" % e)
+                lptlog.exception("")
+
+    
+    def _write_index_img(self, index, row, col, graphic_name="lpt"):
+        graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
+        pngfile = graphic_name+".ps"
+        if os.path.exists(pngfile):
+            bmpfile = self._tran_png_to_bmp(pngfile)
+            self.xls_write.insert_img(self.sheet, bmpfile, row, col)
+            row = row + 9
+        else:
+            lptlog.error("No Found %s" % pngfile)
+        return row + 1
+
+    def write_indexs_img(self, row, col):
+        self.xls_write.section_title(self.sheet, "四.  图例",  row)
+        row = row + 1
+        for index in self.tool_indexs:
+            self.xls_write.write_cell(self.sheet,  index, row, col)
+            row = row + 1
+            row  = self._write_index_img(index, row, col)
+                        
+        return row + 1
+    
     def hor_report(self, row):
         '''横向写入方法'''
         
@@ -471,7 +563,9 @@ class XlsReport(Report):
             row = self.write_parallel_hor_data(parallel_nodes, row)
             lptlog.debug("写入 %d 并行 测试数据:PASS" % parallel)
             #空二行
-            row = row + 2
+            row = row + 1
+            
+        return row
     
     def ver_report(self, row):
         #lptlog.debug("写入标题")
@@ -492,17 +586,20 @@ class XlsReport(Report):
             row = self.write_parallel_data_des(parallel, row)
             row = self.write_ver_data_title(row, parallel_nodes)
             row = self.write_ver_data(row, parallel, parallel_nodes)
-            row = row + 2
+            row = row + 1
             
               #加大第一列宽度
         #self.sheet.col(1).width = 9000
+        return row
+    
               
     def report(self):
         lptlog.debug("检查是否包含 %s result" % self.tool)
         if not self.check_tool_nodes():
             raise ValueError, " %s 测试数据为空..."
         #nodes = self.get_nodes()
-   
+        lptlog.info("生成图片报告")
+        self.gen_index_graphic()
         lptlog.info("数据写入方式： %s" % self.writeType)
         
         lptlog.debug("写入标题")
@@ -514,17 +611,21 @@ class XlsReport(Report):
         row = self.write_tool_index(row_index_start, colmin=1, colmax=1+colwidth)
         row = row + 1
         row = self.write_result_title(row)
+       
         
         if self.writeType == "horizontal":
-            self.hor_report(row)
+            row = self.hor_report(row)
         elif self.writeType == "vertical":
-            self.ver_report(row)
+            row = self.ver_report(row)
+            
+        self.write_indexs_img(row, 1)
         
         #调整格式
         self._set_text_format("descriptions", row_des+1, colmin=1, colmax=1+colwidth)
         for index in self.tool_indexs:
             self._set_text_format(index, row_index_start+self.tool_indexs.index(index)+1, colmin=1, colmax=1+colwidth)
-        
+         
+   
                
               
 def xls_report(xml, tools, reportfile, writeType="horizontal"):
@@ -765,6 +866,166 @@ class CompareToolXls(ToolCompare):
             
         return row
     
+   
+    def _get_all_index_data(self, index):
+        '''获取index所有xml数据中，tag为index的所有测试数据
+        @return: list, ie:[ (), ()], 其中一个list为parallel元组'''
+        index_data_list = []
+        for xml_name in self.xmls_keys:
+            index_data = map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values())
+            index_data_list.append(index_data)
+        index_data_list.insert(0, self.parallels)
+    
+        return index_data_list
+            
+    def __gen_index_graphic(self, index,  graphic_name, title):
+        graphic = chart.Draw(map(list, zip(*self._get_all_index_data(index))), graphic_name, title)
+    
+        xais = graphic.set_X("parallels")
+        yais = graphic.set_Y("Results")
+        ar = graphic.creat_area((300, 100), xais, yais)
+        plot_list = []
+        for xml_name in self.xmls_keys:
+            plot = graphic.creat_line_plot(xml_name, self.xmls_keys.index(xml_name)+1, tick_mark_list[self.xmls_keys.index(xml_name)])
+            plot_list.append(plot)
+        graphic.area_add_plot(ar, plot_list)
+        graphic.draws(ar)
+        
+    def gen_index_graphic(self, graphic_name):
+        '''gen all index graphic'''
+        for index in self.tool_indexs:
+            graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
+            graphic = chart.Draw(map(list, zip(*self._get_all_index_data(index))), graphic_name, index)
+            xais = graphic.set_X("parallels")
+            yais = graphic.set_Y("Results")
+            ar = graphic.creat_area((300, 100), xais, yais)
+            plot_list = []
+            for xml_name in self.xmls_keys:
+                plot = graphic.creat_line_plot(xml_name, self.xmls_keys.index(xml_name)+1, tick_mark_list[self.xmls_keys.index(xml_name)])
+                plot_list.append(plot)
+            graphic.area_add_plot(ar, plot_list)
+            graphic.draws(ar)
+        
+    def _get_all_par_data(self, parallel):
+        par_data_list = []
+        for xml_name in self.xmls_keys:
+           result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
+           par_data = map(float, [result_dict.get(index) for index in self.tool_indexs])
+           par_data_list.append(par_data)
+        par_data_list.insert(0, self.tool_indexs)
+        return par_data_list
+    
+    def __gen_par_graphic(self, parallel, graphic_name, title):
+        graphic = chart.Draw(map(list, zip(*self._get_all_par_data(parallel))), graphic_name, title)
+        xais = graphic.set_X("Index")
+        yais = graphic.set_Y("Results")
+        ar = graphic.creat_area((300, 100), xais, yais)
+    
+        plot_list = []
+        for xml_name in self.xmls_keys:
+            #plot = graphic.creat_bar_plot(xml_name, cluster=(self.xmls_keys.index(xml_name), len(self.xmls_keys)))
+            plot = graphic.creat_line_plot(xml_name,  self.xmls_keys.index(xml_name)+1,  tick_mark_list[self.xmls_keys.index(xml_name)])
+            plot_list.append(plot)
+        
+        graphic.area_add_plot(ar, plot_list)
+        graphic.draws(ar)
+        
+    def gen_par_graphic(self, graphic_name):
+        '''gen all par graphic'''
+        for parallel in self.parallels:
+            graphic_name = os.path.join(tmpdir,"%s_%s_P%d" % (graphic_name, self.tool, parallel))
+            graphic = chart.Draw(map(list, zip(*self._get_all_par_data(parallel))), graphic_name)
+            xais = graphic.set_X("Index")
+            yais = graphic.set_Y("Results")
+            ar = graphic.creat_area((300, 100), xais, yais)
+    
+            plot_list = []
+            for xml_name in self.xmls_keys:
+            #plot = graphic.creat_bar_plot(xml_name, cluster=(self.xmls_keys.index(xml_name), len(self.xmls_keys)))
+                plot = graphic.creat_line_plot(xml_name,  self.xmls_keys.index(xml_name)+1,  tick_mark_list[self.xmls_keys.index(xml_name)])
+                plot_list.append(plot)
+            graphic.area_add_plot(ar, plot_list)
+            graphic.draws(ar)
+        
+    def gen_graphcis(self, writeType, graphic_name="cmp"):
+        try:
+            if writeType == "index":
+                self.gen_index_graphic(graphic_name)
+            else:
+                self.gen_par_graphic(graphic_name)
+        except Exception,e:
+            lptlog.error("gen graphic error:%s" %e)
+      
+    def _tran_png_to_bmp(self, pngfile):
+        bmpfile = pngfile.split('.')[0]+".bmp"
+        Image.open(pngfile).convert("RGB").save(bmpfile)
+        return bmpfile
+        
+ 
+    def write_index_img(self, index, graphic_name, row, col):
+        
+        try:
+            graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
+            self.__gen_index_graphic(index, graphic_name, index)
+        except Exception,e:
+            lptlog.error("gen graphic error")
+            lptlog.debug(e)
+        else:
+                #xlwt only support bmpfile, so we need to transate to bmpfile
+            pngfile = graphic_name+".ps"
+            if os.path.exists(pngfile):
+                bmpfile = self._tran_png_to_bmp(pngfile)
+                self.xls_write.insert_img(self.sheet, bmpfile, row, col)
+                row = row + 9
+            else:
+                lptlog.error("NO found %s" % pngfile)
+        finally:
+            return row + 1
+         
+       # graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
+        #pngfile = graphic_name+".png"
+        #if os.path.exists(pngfile):
+         #   bmpfile = self._tran_png_to_bmp(pngfile)
+          #  self.xls_write.insert_img(self.sheet, bmpfile, row, col)
+           # row = row + 9
+        #else:
+         #   lptlog.error("NO found %s" % pngfile)
+            
+        #return row + 1
+        
+    def write_par_img(self, parallel, graphic_name, row, col):
+        
+        try:
+            graphic_name = os.path.join(tmpdir,"%s_%s_P%d" % (graphic_name, self.tool, parallel))
+            self.__gen_par_graphic(parallel, graphic_name, parallel)
+        except Exception,e:
+            lptlog.error("gen graphic error:%s" % e )
+            #lptlog.exception('')
+           
+        else:
+                #xlwt only support bmpfile, so we need to transate to bmpfile
+            pngfile = graphic_name+".ps"
+            if os.path.exists(pngfile):
+                bmpfile = self._tran_png_to_bmp(pngfile)
+                self.xls_write.insert_img(self.sheet, bmpfile, row, col)
+                row = row + 9
+            else:
+                lptlog.error("NO found %s" % pngfile)
+        finally:
+            return row + 1
+        #graphic_name = os.path.join(tmpdir,"%s_%s_P%d" % (graphic_name, self.tool, parallel))
+        #pngfile = graphic_name+".png"
+        #if os.path.exists(pngfile):
+         #   bmpfile = self._tran_png_to_bmp(pngfile)
+          ## row = row + 9
+        #else:
+         #   lptlog.error("NO found %s" % pngfile)
+            
+        #return row + 1
+            
+        
+        
+    
 def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="parallel"):
     ''' tool xls compare report'''
     tool_cmp_object = CompareToolXls(tool, tool_sheet, xls_object, xmls_dict)
@@ -779,14 +1040,16 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
     row_index_start = row 
     row = tool_cmp_object.write_tool_index(row, colmin=1, colmax=1+colwidth) + 1
     row = tool_cmp_object.write_result_title(row)
-    
+    #产生graphic
+    #tool_cmp_object.gen_graphcis(writeType, graphic_name="lpt")
     if writeType=="parallel":
      #   row = 8
         for parallel in tool_cmp_object.parallels:
             tool_cmp_object.write_parallel_data_des(parallel, row)
             tool_cmp_object.write_parallel_data_title(row+1)
             row = tool_cmp_object.write_parallel_data(parallel, row+2)
-            row = row + 1
+            #row = row + 1
+            row = tool_cmp_object.write_par_img(parallel, "cmp", row ,2)
             
     elif writeType=="index":
        # row = 8
@@ -795,7 +1058,8 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
             tool_cmp_object.write_index_data_des(index, row)
             tool_cmp_object.write_index_data_title(row+1)
             row = tool_cmp_object.write_index_data(index, row+2)
-            row = row + 1
+            #row = row + 1
+            row = tool_cmp_object.write_index_img(index, "cmp", row, 2)
             
     #调整表格宽度
     tool_cmp_object._set_text_format("descriptions", row_des+1, 1, 1+colwidth)
@@ -877,10 +1141,10 @@ class XlsCompare(Compare):
             tool_sheet = self.xls_write.sheet(tool)
             try:
                 lptlog.info("开始创建 %s 对比测试报告"  % tool)
-                if tool in ("unixbench", "dbench_fio", "stream", "bonnie"):
-                    writeType = "index"
-                else:
+                if tool in ("iozone",):
                     writeType = "parallel"
+                else:
+                    writeType = "index"
                 compare_tool_xls(tool, tool_sheet, self.xls_write, self.xmls_dict, writeType=writeType)
                 lptlog.info("""
                  --------------------------------------------------------------
