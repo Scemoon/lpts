@@ -27,7 +27,7 @@ JOBS_XML = os.path.join(DB_DIR, 'jobs.xml')
 
 __START_MSG = '''
    ################################################################
-  #               --Linux Performance Testing--                    #
+  #            --Linux Performance Testing Suite--                 #
   #                                                                #
   # @author:     Scemoon                                           #
   # @contact:    mengsan8325150@gmail.com                          #
@@ -56,12 +56,14 @@ __END_MSG = '''
 
 
 def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=False):
+    if not jobs_xml:
+        jobs_xml=JOBS_XML
     jobs = lptxml.Jobs(jobs_xml)
     if job_id is None:
         try:
             job_node = jobs.get_new_job()
         except IndexError,e:
-            lptlog.error("job任务数为0， 期望非0")
+            lptlog.debug("job任务数为0， 期望非0")
             job_node = None
     else:
         
@@ -70,7 +72,7 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
         #python 2.6
         job_nodes = jobs.search_job_nodes("job")
         if job_nodes is None:
-            lptlog.error("job任务数为0， 期望非0")
+            lptlog.debug("job任务数为0， 期望非0")
             job_node = None
         else:
             job_filter_nodes = filter(lambda x: x.get("id")==str(job_id), job_nodes)
@@ -87,8 +89,8 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
     #判断所有工具是否已经全部执行完毕
     no_exec_tools_nodes_list = jobs.get_noexec_tools_nodes(job_node)
     if not no_exec_tools_nodes_list:
-        lptlog.warning('任务中所有工具状态都已正确执行， 请重新创建测试任务')
-        raise ValueError, "尚未执行完毕的测试工具集为0"
+        #lptlog.warning('任务中所有工具状态都已正确执行， 请重新创建测试任务')
+        raise ValueError, "任务中所有工具状态都已正确执行， 请重新创建测试任务"
     else:
         no_exec_tools = map(jobs.get_tool_name, no_exec_tools_nodes_list)
         
@@ -99,8 +101,8 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
         test_tools = [ tool for tool in no_exec_tools if tool in tools_list]
         
         if not test_tools:
-            lptlog.warning('指定运行的测试工具已经全部执行完毕, 请重新创建任务')
-            raise ValueError, "尚未执行完毕的测试工具集为0"
+            #lptlog.warning('指定运行的测试工具已经全部执行完毕, 请重新创建任务')
+            raise ValueError, '指定运行的测试工具已经全部执行完毕, 请重新创建任务'
         else:
             tools_string = " ".join(test_tools)
             lptlog.debug("尚未执行完毕的测试工具集:%s" % tools_string)
@@ -143,11 +145,11 @@ def main():
     lptlog.info(__START_MSG)
     try:
         if not os.path.isfile(JOBS_XML):
-            lptlog.warning("jobs.xml文件不存在")
-            raise NameError()
+            #lptlog.warning("jobs.xml文件不存在")
+            raise NameError, "%s 不存在"  % JOBS_XML
         run()
-    except Exception:
-        lptlog.error('测试异常')
+    except Exception, e:
+        lptlog.error('Debug Message: %s' % e)
     finally:
         lptlog.info(__STOP_MSG)
         

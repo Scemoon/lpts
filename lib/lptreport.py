@@ -14,13 +14,14 @@ from lpt.lib import chart
 from pychart import tick_mark
 from PIL import Image
 from multiprocessing import Process
+from signal import SIGTERM 
 
 
 lptdir = os.getenv("LPTROOT")
 VERSION_FILE = os.path.join(lptdir, "release")
 DOCS_FILE = os.path.join(lptdir, "config/docs.conf")
 lpttmpdir = os.path.join(lptdir, "tmp")
-tmpdir = os.path.join("/tmp/lpt")
+tmpdir = os.path.join("/tmp/lpts")
 if not os.path.exists(tmpdir):
     os.makedirs(tmpdir)
     
@@ -65,13 +66,66 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
         'dbench_fio':['Throughtput', 'max_latency']
            
         }
-
+class CFork:
+    ''' create fork'''
+    
+    @classmethod
+    def __create_process(cls):
+        try:
+            forkPID = os.fork()
+            if forkPID >0:
+                return 1
+            else:
+                return 0
+        except OSError:
+            lptlog.warning("create process Error")
+            return 2
+        
+    @classmethod
+    def _create_chprocess(cls):
+        '''return chidl process pid'''
+        
+        forkStatus = cls.__create_process()       
+        if forkStatus == 1:
+             #os.setsid() 
+             #os.umask(0)
+             cforkStatus = cls.__create_process()
+             if cforkStatus == 0:
+                 return os.getpid()
+             else:
+                 return None
+        elif forkStatus==0:
+            return os.getpid()
+        else:
+            return None
+             
+    
+    @classmethod
+    def _kill_chiprocess(cls, pid):
+        if pid:
+            pass
+        else:
+            lptlog.warning("Pid Type Error")
+            return 1
+        try:
+            while 1:
+                os.kill(pid, SIGTERM)
+                time.sleep(0.1)
+                lptlog.info("Now, Kill Pid %s: PASS" % pid)
+        except OSError, err:
+            lptlog.error("Kill pid %s :Error" % pid)
+            
+    @classmethod
+    def run(cls, func, *args, **kwargs):
+        pid = cls._create_chprocess()
+        func(*args, **kwargs)
+        cls._kill_chiprocess(pid)
+        
+    
 tick_mark_list = [tick_mark.star, tick_mark.plus, tick_mark.dia, tick_mark.tri, tick_mark.dtri, 
              tick_mark.circle1, tick_mark.blacksquare, tick_mark.blackdia, tick_mark.blackdtri,
               tick_mark.gray70square, tick_mark.gray70dia, tick_mark.gray70dtri]
 
-
- 
 def get_config_value(key, tool, config=DOCS_FILE):
         return readconfig.get_conf_instance(config).get_str_value(tool, key)
 
@@ -600,6 +654,8 @@ class XlsReport(Report):
         #nodes = self.get_nodes()
         lptlog.info("生成图片报告")
         self.gen_index_graphic()
+        #CFork.run(self.gen_index_graphic)
+        
         lptlog.info("数据写入方式： %s" % self.writeType)
         
         lptlog.debug("写入标题")
@@ -619,15 +675,14 @@ class XlsReport(Report):
             row = self.ver_report(row)
             
         self.write_indexs_img(row, 1)
+      
         
         #调整格式
         self._set_text_format("descriptions", row_des+1, colmin=1, colmax=1+colwidth)
         for index in self.tool_indexs:
             self._set_text_format(index, row_index_start+self.tool_indexs.index(index)+1, colmin=1, colmax=1+colwidth)
          
-   
-               
-              
+    
 def xls_report(xml, tools, reportfile, writeType="horizontal"):
     ''''''
     #初始化xls实例

@@ -77,4 +77,5 @@
     ./lpt.py -l
  
 NOTE:
-  1.如果需要执行unixbench多并行测试，需要对python中的subprocess.py PATCH， patch存放在config/目录中...
+  1.如果需要执行unixbench多并行测试，需要对python中的subprocess.py PATCH，执行./scripts/patch.sh
+  

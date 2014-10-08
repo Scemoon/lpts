@@ -4,16 +4,45 @@
 #####################################################
 
 @ 2014/09/24 V3.0.3
-  1.New
+  1.Add Function
   新增图标功能，xls report中新增“图例”章节，该章节中
 添加每个指标对应的bar图，X轴变量为parallel,即：多并
 行测试数；对比测试报告中，在每组测试数据中，添加该组
 测试数据对应的图例，图例形式为line图，通常X轴变量为
 parallel，个别测试工具的图例的X轴为测试指标
 
-  2.Bug
-  目前已知的bug为：生成xls report或者xls 对比report
+  2.Bug 
+  bug:lpt_bug_0001, 目前已知的bug为：生成xls report或者xls 对比report
 时，由于pychart生成的图例在进程退出后方能生成图标，因
 此需要执行两次。后期将修复此bug
 
 
+@ 2014// V3.0.4
+  1.Add Function:patch python
+  增加scripts/patch.sh, 该脚本修复python2.x中subprocess.py
+执行pipe，异常关闭的bug
+
+  2.Add Funtion: install lpts
+  增加scripts/install.sh, 该脚本安装lpt suite, 当安装lpts后，
+可以通过修改config/lpt.conf中的JOBS、TESTS、REBOOT，指定运行
+参数
+  JOBS:   指定jobs.xml的path
+  TESTS:  指定测试的工具集合
+  REBOOT：设置是否在每个tool后重启OS
+
+  3.Add Files:
+  1). scripts/patch.sh: fix python2.x bug scripts
+  2). scripts/fix.sed : specify fix method
+  3). scripts/lptd    : lpt suite daemon
+  4). install.sh      : install lpt suite 
+
+  4.Update
+  1)更改运行脚本为lpt.py为lpts.py
+  2)更改主目录名称LPT为lpts
+
+  5.Delete
+  1)删除example/3A_results.xls
+  2)删除example/3A-3B_cmp.xls
+
+  6. Fix Bug
+  修复bug lpt_bug_0001 

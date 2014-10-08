@@ -48,7 +48,7 @@ def add_job(tools_list, jobs_xml=JOBS_XML, parameter=default_parameter, jobs_att
                          创建测试任务:PASS
                         ++++++++++++++++++''')
     except CreateJobException, e:
-        lptlog.debug(e)
+        lptlog.error(e)
         lptlog.error('''
                         ++++++++++++++++++
                          创建测试任务:FAIL
@@ -93,16 +93,15 @@ def getopts(argv=sys.argv):
                 sys.exit()
             else:
                 tools_list.append(value)
-
-	if opt in ('-g', '--group'):
-	    value_list = value.split()
-	    for tools in  value_list:
-		if tools in TOOLS:
-		   tools_list.append(tools)
-		else:
-		   lptlog.warning('%s不是有效的测试工具，请核对工具名称' % tools)
-
-
+                
+        if opt in ('-g', '--group'):
+             value_list = value.split()
+             for tools in  value_list:
+		          if tools in TOOLS:
+		              tools_list.append(tools)
+        else:
+		      lptlog.warning('%s不是有效的测试工具，请核对工具名称' % tools)
+    
     return tools_list
 
 def main():

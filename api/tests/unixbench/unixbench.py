@@ -17,7 +17,7 @@ except KeyError:
 autodir = os.path.abspath(os.environ['AUTODIR'])
 
 #lptdir = os.path.join(os.path.dirname(autodir), "lpt")
-lptdir = os.path.join(autodir, "lpt")
+lptdir = os.path.join(autodir, "lpts")
 os.environ['LPTROOT'] = lptdir
 from autotest.client import setup_modules
 setup_modules.setup(base_path=lptdir, root_module_name="lpt")

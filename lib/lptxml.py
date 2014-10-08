@@ -77,10 +77,9 @@ class ConfigToXml(readconfig.BaseConfig, base_xml.RWXml):
         if isinstance(test_list, list)  and test_list:
             self.custom_sections = test_list
         else:
-            
             #self.custom_sections = self.get_sections()  #获取全部
-            lptlog.error("测试工具为空， 请指定测试工具集")
-            raise NameError, "请指定测试工具"
+            #lptlog.error("测试工具为空， 请指定测试工具集")
+            raise CreateJobException, "测试工具为空， 请指定测试工具集"
         return 
         
     def add_configparser_node(self, father_node, node_tag, node_attrib):
@@ -185,8 +184,8 @@ class Jobs(base_xml.RWXml):
             conftoxml.add_configparser_node(job, 'tool', {'status':'no'})
         except Exception, e:
             #lptlog.exception('parameter.conf转换xml失败')
-            lptlog.error('parameter.conf转换xml失败')
-            raise CreatNodeError, e
+            #lptlog.error('parameter.conf转换xml失败')
+            raise CreatNodeError, 'parameter.conf转换xml失败: %s' % e
         
         if job is None:
             raise CreatJobsError()

@@ -9,6 +9,7 @@ from pychart import line_style
 from pychart import fill_style
 from pychart import bar_plot
 from pychart import category_coord
+import sys
 
 
 class Draw(object):
@@ -83,7 +84,7 @@ class Draw(object):
         
     def draws(self, ar):
         ar.draw(self.can)
-        #ar.draw()
+        canvas._exit()
 
 
 
