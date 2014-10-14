@@ -80,7 +80,7 @@ def getopts(argv=sys.argv):
       
 
 def report(result_xml, resultDir, tools_list=None, 
-            reportname=None, format='xls'):
+            reportname=None, format='xls', chart=False):
     '''report 方法'''
     lptlog.info('''
                         ~~~~~~~~~~~~~~~~~~~~
@@ -107,7 +107,7 @@ def report(result_xml, resultDir, tools_list=None,
         
     #lptreport.report(result_xml, tools_list, report_file, format)
     if format == "xls":
-        lptreport.xls_report(result_xml, tools_list, report_file)
+        lptreport.xls_report(result_xml, tools_list, report_file, chart=chart)
     elif format == "txt":
         lptreport.txt_report(result_xml, tools_list, report_file)
     else:

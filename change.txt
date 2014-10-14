@@ -5,8 +5,7 @@
 
 @ 2014/09/24 V3.0.3
   1.Add Function
-  新增图标功能，xls report中新增“图例”章节，该章节中
-添加每个指标对应的bar图，X轴变量为parallel,即：多并
+  新增图标功能，xls report中新增“图例”章节，该章节中 添加每个指标对应的bar图，X轴变量为parallel,即：多并
 行测试数；对比测试报告中，在每组测试数据中，添加该组
 测试数据对应的图例，图例形式为line图，通常X轴变量为
 parallel，个别测试工具的图例的X轴为测试指标
@@ -46,3 +45,30 @@ parallel，个别测试工具的图例的X轴为测试指标
 
   6. Fix Bug
   修复bug lpt_bug_0001 
+  
+
+@ 2014/10/13 V3.0.5
+  1.Update
+  1).更新lpts.py -l，可以查询每个工具的执行状态，"no":为尚未执行成功，
+"ok"表示已经执行成功
+  2).添加自定义results.xml名称结构,可以查看scripts/jobs.py脚本的函数
+  3).更新部分代码编码格式
+  4).更新守护进程lptd,重新设计lptd流程
+  5).更新xls测试报告，主要为对齐紊乱的问题
+  6).更新x11perf测试程序，不在自动安装x11perf,需要手动安装。因发现在
+    RHEL7中安装x11perf测试程序，将缺少部分测试项，但通过安装xorg-x11-apps
+    ，x11perf测试程序可正常运行
+  7).其他略
+  8).更新默认测试配置文件parameters/default.conf
+
+ 2.Add
+ 1).新增功能，xls report，添加运行环境sheet
+ 2).新增功能，修改xls report默认不生成chart, --chart参数生成图表chart
+ 3).新增功能，xls report,添加主要测试参数信息
+
+ 3.Fix
+ 1). 修复glxgears运行失败的bug
+ 2). 修复x11perf运行失败的bug
+ 3). 修复lptd守护进程不生效的bug
+ 4). 修复 执行scripts/clean.sh，会删除lpts根目录的bug
+

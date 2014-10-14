@@ -3,9 +3,10 @@
     @summary: 获取操作系统软、硬件信息
 '''
 
-import os
+import os,re
 from lpt.lib.share import utils
 import platform
+import commands
 
 def get_memory_size(unit_format='m'):
     '''获取内存大小
@@ -21,39 +22,6 @@ def get_current_kernel_arch():
     return platform.machine()
 
     
-def get_os_vendor():
-    """
-    Try to guess what's the os vendor.
-    """
-    logging.warn('utils.get_os_vendor() is deprecated, please use '
-                 'autotest.client.shared.distro.detect() instead')
-
-    vendor = 'Unknown'
-    if os.path.isfile('/etc/SuSE-release'):
-        return 'SUSE'
-
-    issue = '/etc/issue'
-
-    if not os.path.isfile(issue):
-        return vendor
-
-    if file_contains_pattern(issue, 'Red Hat'):
-        vendor = 'Red Hat'
-    if file_contains_pattern(issue, 'CentOS'):
-        vendor = 'Red Hat'
-    elif file_contains_pattern(issue, 'Fedora'):
-        vendor = 'Fedora'
-    elif file_contains_pattern(issue, 'SUSE'):
-        vendor = 'SUSE'
-    elif file_contains_pattern(issue, 'Ubuntu'):
-        vendor = 'Ubuntu'
-    elif file_contains_pattern(issue, 'Debian'):
-        vendor = 'Debian'
-
-    logging.debug("Detected OS vendor: %s", vendor)
-    return vendor
-
-
 def get_cc():
     try:
         return os.environ['CC']
@@ -129,6 +97,16 @@ def cpu_has_flags(flags):
     return True
 
 
+def list_grep(list, pattern):
+    """True if any item in list matches the specified pattern."""
+    compiled = re.compile(pattern)
+    for line in list:
+        match = compiled.search(line)
+        if (match):
+            return 1
+    return 0
+
+
 def get_cpu_vendor_name():
     """
     Get the current cpu vendor name
@@ -140,7 +118,8 @@ def get_cpu_vendor_name():
     vendors_map = {
         'intel': ("GenuineIntel", ),
         'amd': ("AMD", ),
-        'power7': ("POWER7", )
+        'power7': ("POWER7", ),
+        'mips':("Loongson", "mips64")
     }
 
     cpu_info = get_cpu_info()
@@ -148,7 +127,7 @@ def get_cpu_vendor_name():
         for identifier in identifiers:
             if list_grep(cpu_info, identifier):
                 return vendor
-    return None
+    return "N/A"
 
 
 def get_cpu_arch():
@@ -338,15 +317,15 @@ def check_for_kernel_feature(feature):
         raise ValueError("Kernel doesn't have a %s feature" % (feature))
 
 
-def cpu_online_map():
-    """
-    Check out the available cpu online map
-    """
-    cpus = []
-    for line in open('/proc/cpuinfo', 'r').readlines():
-        if line.startswith('processor'):
-            cpus.append(line.split()[2])  # grab cpu number
-    return cpus
+#def cpu_online_map():
+  #  """
+ ##   Check out the available cpu online map
+  #  """
+ #   cpus = []
+  #  for line in open('/proc/cpuinfo', 'r').readlines():
+ #       if line.startswith('processor'):
+ #           cpus.append(line.split()[2])  # grab cpu number
+ #   return cpus
 
 
 def check_glibc_ver(ver):
@@ -370,14 +349,14 @@ def human_format(number):
     # Convert number to kilo / mega / giga format.
     if number < 1024:
         return "%d" % number
-    kilo = float(number) / 1024.0
+    kilo = float(number) / 1024
     if kilo < 1024:
-        return "%.2fk" % kilo
+        return "%.2fkiB" % kilo
     meg = kilo / 1024.0
     if meg < 1024:
-        return "%.2fM" % meg
-    gig = meg / 1024.0
-    return "%.2fG" % gig
+        return "%.2fMiB" % meg
+    gig = meg / 1024
+    return "%.2fGiB" % gig
 
 
 def to_seconds(time_string):
@@ -498,9 +477,9 @@ def get_loaded_modules():
 def get_cpu_vendor():
     cpuinfo = open('/proc/cpuinfo').read()
     vendors = re.findall(r'(?m)^vendor_id\s*:\s*(\S+)\s*$', cpuinfo)
-    for i in xrange(1, len(vendors)):
-        if vendors[i] != vendors[0]:
-            raise error.TestError('multiple cpu vendors found: ' + str(vendors))
+    #for i in xrange(1, len(vendors)):
+   #     if vendors[i] != vendors[0]:
+    #        raise error.TestError('multiple cpu vendors found: ' + str(vendors))
     return vendors[0]
 
 
@@ -614,3 +593,165 @@ def get_uptime():
         return output.split()[0]
     else:
         return None
+
+def read_cpuinfo(match):
+    '''  match must include two group
+    return (name, value)'''
+    cpuinfo = open('/proc/cpuinfo').read()
+    re_match = re.findall(r'%s' % match, cpuinfo, re.I)
+    if re_match:
+        return re_match[-1]
+    else:
+        return ("N/A", "N/A")
+
+
+def read_meminfo(match):
+    meminfo = open('/proc/meminfo').read()
+    re_match = re.findall(r'%s' % match, meminfo, re.I)
+    if re_match:
+        return re_match[-1]
+    else:
+        return ("N/A", "N/A")
+    
+def read_hardinfo():
+    '''return dict'''
+    hdinfo = open('/proc/partitions').readlines()[2:]
+    partinfo = [line.split()[-1] for line in hdinfo]
+    return " ".join(partinfo)
+
+
+def get_RootFilesystem():
+    '''return
+    Filesystem     Type   Size  Used Avail Use% Mounted on
+    '''
+    try:
+        output = utils.system_output('df -lhT|grep "/$"')
+        return tuple(output.split())
+    except Exception:
+        return ("N/A","N/A","N/A","N/A","N/A","N/A","N/A")
+
+def get_gccVersion():
+    try:
+        #output = utils.system_output('java -version')
+        output = commands.getoutput("gcc -v")
+        return output.split("\n")[-1]
+    except Exception:
+        return "N/A"
+
+def get_javaVersion():
+    try:
+        #output = utils.system_output('java -version')
+        output = commands.getoutput("java -version")
+        return (output.split("\n")[0], output.split("\n")[1], output.split("\n")[2])
+    except Exception:
+        return ("N/A","N/A","N/A")
+def get_cmd_output(cmd):
+    try:
+        output = commands.getoutput(cmd)
+        return output
+    except Exception:
+        return "N/A"
+    
+def get_iptables_status():
+    if os.path.exists("/usr/lib/systemd"):
+        if os.path.isfile("/run/lock/sub/sys/iptables"):
+            return "on"
+        else:
+            return "off"
+    else:
+        if os.path.isfile("/etc/sysconfig/iptables"):
+            return "on"
+        else:
+            return "off"
+        
+def get_services():
+    if os.path.exists("/usr/lib/systemd"):
+        try:
+            output = utils.system_output("systemctl -t service list-unit-files|grep enabled|awk  '{print $1}'")
+            print output
+            return ",".join(output.split())
+        except Exception:
+            return "N/A"
+    else:
+        try:
+            output = utils.system_output("chkconfig  --list|grep -E '(5:启用|5:on)'|awk '{print $1}'")
+            print output
+            return ",".join(output.split())
+        except Exception:
+            return "N/A"
+    
+class OSInfo(object):
+    '''get OS infor'''
+    keys = { 
+            "CpuVendor":get_cpu_vendor_name(),
+            "CpuModel":read_cpuinfo('(\model\s+name|cpu\s+\model)\s+:\s+(.+)')[1],
+            "CpuMhz":read_cpuinfo('(cpu\s+mhz)\s+:\s+(\S+)')[1],
+            "Processor":platform.processor(),
+            "Arch":" ".join(platform.architecture()),
+            "BogoMIPS":read_cpuinfo('(bogomips)\s+:\s+(\S+)')[1],
+            "CpuCores":read_cpuinfo('(cpu\s+cores)\s+:\s+(\S+)')[1],
+            "Siblings":read_cpuinfo('(siblings)\s+:\s+(\S+)')[1],
+            "CpuCount":"%d" % count_cpus(),
+                    
+            "MemModel":"N/A",
+            "MemMhz":"N/A",
+            "MemTotal":"%s KiB" % read_meminfo('(MemTotal):\s+(\d+)')[1],
+            "SwapTotal":"%s KiB" % read_meminfo('(SwapTotal):\s+(\d+)')[1],
+            "Shmem":"%s KiB" % read_meminfo('(Shmem):\s+(\d+)')[1],
+            "VmallocTotal":"%s KiB" % read_meminfo('(VmallocTotal):\s+(\d+)')[1],
+            "Hugepagesize":"%s KiB" % read_meminfo('(Hugepagesize):\s+(\d+)')[1],
+            
+            "DiskInfo":read_hardinfo(),
+            "DiskSize":"N/A",
+            
+            "CardModel":"N/A",
+            "speed":"N/A",
+            
+            "Platform":platform.platform(),
+            "Kernel":platform.release(),
+            "Version":platform.version(),
+            "Filesystem":get_RootFilesystem()[0],
+            "FilesystemType":get_RootFilesystem()[1],
+            "FilesystemSize":get_RootFilesystem()[2],
+            "Gcc":get_gccVersion(),
+            "Glibc":" ".join(platform.libc_ver()),
+            "JavaVersion": get_javaVersion()[0],
+            "JavaBuild": get_javaVersion()[1],
+            "JavaMode": get_javaVersion()[2],
+            "Python":platform.python_version(),
+             
+             "RpmNums":get_cmd_output("rpm -qa|wc -l"),
+             "Runlevel":get_cmd_output("runlevel"),
+             "Servers":get_services(),
+             "IPtables":get_iptables_status(),
+             "SELinux":get_cmd_output("getenforce"),
+             "IOSchedule":"N/A",
+             "KernelCmd":get_cmd_output("cat /proc/cmdline")
+
+                  }
+    
+    info_keys = {
+                 "CPU":["CpuVendor", "CpuModel", "CpuMhz", "Processor", "Arch", "BogoMIPS", "CpuCores", "Siblings", "CpuCount", "BogoMIPS"],
+                 "Mem":["MemModel", "MemMhz", "MemTotal", "SwapTotal",  "Shmem", "VmallocTotal",  "Hugepagesize"],
+                 "Disk":["DiskInfo", "DiskSize"],
+                 "Network":["CardModel", "speed"],
+                 "OS": [ "Platform", "Kernel", "Version",  "KernelCmd", "Runlevel", "IOSchedule",
+                        "Filesystem", "FilesystemType","FilesystemSize", 
+                        "Gcc", "Glibc", "JavaVersion", "JavaBuild", "JavaMode", "Python",
+                        "RpmNums", "IPtables", "SELinux", "Servers"],
+                     }
+    
+    type_keys = ["CPU", "Mem", "Disk", "Network", "OS"]
+    
+    def __setitem__(self, item, value):
+        if self.keys.has_key(item):
+            self.keys[item] = value
+            
+    def __getitem__(self, item):
+        if self.keys.has_key(item):
+            return self.keys[item]
+        
+    def get_type_keys(self, type):
+        '''type = CPU、Mem、OS、Hard'''
+        if self.type_keys.has_key(type):
+            return self.type_keys[type]

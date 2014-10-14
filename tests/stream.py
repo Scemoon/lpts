@@ -23,7 +23,7 @@ class TestControl(BaseTest):
         self.processBin2 = os.path.join(self.bin_dir, 'stream_mu')
         self.times = None
         self.parallels = None
-        
+               
         
     def setup(self):
         '''编译源码，设置程序
@@ -56,7 +56,7 @@ class TestControl(BaseTest):
             cmd = self.processBin
             self.parallels = [1]
             
-             
+        self.mainParameters["parameters"] = "stream_mu"
         lptlog.info("----------运行测试脚本")      
         #执行测试程序
         for parallel in self.parallels:

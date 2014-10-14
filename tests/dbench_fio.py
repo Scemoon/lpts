@@ -35,6 +35,7 @@ class TestControl(BaseTest):
         '''
         utils.has_gcc()
         utils.has_file("popt-devel", "/usr/include/popt.h")
+        utils.has_file("zlib-devel", "/usr/include/zlib.h")
      
             
     def setup(self):
@@ -47,7 +48,7 @@ class TestControl(BaseTest):
             self.compile(configure_status=True, make_status=True)
             utils.copy(os.path.join(self.tar_src_dir, 'dbench'), self.processBin)
             if not os.path.exists(os.path.join(self.tmp_dir, "loadfiles")):
-		utils.copy(os.path.join(self.tar_src_dir, 'loadfiles'), os.path.join(self.tmp_dir, "loadfiles"))
+		          utils.copy(os.path.join(self.tar_src_dir, 'loadfiles'), os.path.join(self.tmp_dir, "loadfiles"))
             os.chdir(self.lpt_root) 
                                  
     def run(self):
@@ -91,7 +92,7 @@ class TestControl(BaseTest):
         lptlog.info("预热时长: %s s" % warnuptime)
         args.append("--warmup=%d" % warnuptime)
         
-            
+        self.mainParameters["parameters"] = " ".join(["dbench"]+args)
         lptlog.info("----------运行测试脚本")
         for parallel in self.parallels:
             lptlog.info("运行 %s 并行" % parallel)
@@ -110,7 +111,7 @@ class TestControl(BaseTest):
                     #清除buffer
                 method.clean_buffer()
                 utils.run_shell2(self.processBin, args_list=args+parallel_args, file=tmp_file)
-                lptlog.info("%d 并行  %d 次测试，测试数据保存在: %s " % (parallel, iter+1, tmp_file))
+                lptlog.info("%d 并行  第 %d 次测试，测试数据保存在: %s " % (parallel, iter+1, tmp_file))
         
                
     def create_result(self):

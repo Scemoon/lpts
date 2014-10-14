@@ -21,8 +21,8 @@ class XmlTree(object):
         self.tree = ET.ElementTree()
         
         
-    def create_root_node(self, root_tag):
-        root= ET.Element(root_tag)
+    def create_root_node(self, root_tag, attrib={}):
+        root= ET.Element(root_tag, attrib)
         self.tree._setroot(root)
         
         return root

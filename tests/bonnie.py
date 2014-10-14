@@ -140,7 +140,7 @@ class TestControl(BaseTest):
         
                
         #运行测试程序，要求保存结果到tmp目录，result_file命令为iozone_$parallel_type_$iter.out
-      
+        self.mainParameters["parameters"] = utils.list_to_str(["bonnie++"]+args, ops=" ")
             #清除缓冲
         method.clean_buffer()
         lptlog.info("----------运行测试脚本")

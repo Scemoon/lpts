@@ -73,6 +73,7 @@ class BaseTest(lptxml.XmlResults):
         self.jobs_xml = jobs_xml
         self.job_node = job_node
         self.tool = tool
+        self.mainParameters={"parameters":"N/A"}
         
         if tarball[-2:] == "gz":
             self.tar_src_dir = os.path.join(SRC_DIR, tarball[:-7])
@@ -281,19 +282,19 @@ class BaseTest(lptxml.XmlResults):
         '''
         pass
     
-    def save_results_to_xml(self, extra_attrib={}):
+    def save_results_to_xml(self):
         '''定义保存测试数据到result.xml中
         @param extra_attrbib: 定义result节点中包含的其他属性
         @attention: self.result_list定义了测试数据存储结构
                     [   [ {},{}] , [{},{}]  ]
         '''
         try:
-            self.save_result_node(self.tool, extra_attrib, self.result_list)
+            self.save_result_node(self.tool, self.mainParameters, self.result_list)
             lptlog.info("%s 保存到 %s :PASS" % (self.tool, self.result_xml))
         except Exception:
-            lptlog.exception("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
+            #lptlog.exception("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
             #lptlog.error("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
-            raise 
+            raise SaveXMLError, "%s 保存到 %s :FAIL" % (self.tool, self.result_xml)
            
     def txt_report(self, width=15, writeType='horizontal', tag_width=25, format='txt'):
         '''保存测试数据到xml成功后，生成简单的txt测试报告
@@ -323,7 +324,8 @@ class BaseTest(lptxml.XmlResults):
                 lptlog.info("清理Bin文件 %s :PASS" % self.processBin2)
         except Exception, e:
             lptlog.warning('清理临时目录或文件：FAIL')
-            raise CleanError, e
+            lptlog.debug(e)
+            #raise CleanError, e
         finally:
            os.chdir(self.lpt_root)
     

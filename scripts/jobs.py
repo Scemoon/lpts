@@ -30,7 +30,7 @@ default_parameter = os.path.join(LPTROOT, "parameters/default.conf")
 TOOLS = ('stream', 'unixbench', 'dbench_fio', 'pingpong', 'iozone', 'x11perf', 'glxgears')
 
 #首先创建job
-def add_job(tools_list, jobs_xml=JOBS_XML, parameter=default_parameter, jobs_attrib={}):
+def add_job(tools_list, jobs_xml=JOBS_XML, parameter=default_parameter, job_attrib={}, resultXmlName="results"):
     '''
     创建新任务
     @param tools_list:工具列表
@@ -42,18 +42,18 @@ def add_job(tools_list, jobs_xml=JOBS_XML, parameter=default_parameter, jobs_att
                           开始创建测试任务
                         ~~~~~~~~~~~~~~~~~~~~''')
         lptlog.debug("指定测试工具集: %s" % utils.list_to_str(tools_list))
-        lptxml.add_job(jobs_xml, tools_list, parameter, jobs_attrib)
+        lptxml.add_job(jobs_xml, tools_list, parameter, job_attrib=job_attrib, resultXmlName=resultXmlName)
         lptlog.info('''
                         ++++++++++++++++++
                          创建测试任务:PASS
                         ++++++++++++++++++''')
     except CreateJobException, e:
-        lptlog.error(e)
+        lptlog.debug(e)
         lptlog.error('''
                         ++++++++++++++++++
                          创建测试任务:FAIL
                         ++++++++++++++++++''')
-        #lptlog.exception()
+        #lptlog.exception('')
         
     finally:
          lptlog.info('''

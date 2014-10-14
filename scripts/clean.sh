@@ -4,7 +4,7 @@
 ABSPATH=`echo $0|grep "^/"`
 if test "x$ABSPATH" = "x";then
     SCRIPTS_DIR=`dirname $PWD/$0`
-    SCRIPTS_DIR=`dirname $SCRIPTS_DIR`
+    #SCRIPTS_DIR=`dirname $SCRIPTS_DIR`
 else
     SCRIPTS_DIR=`dirname $0`
 fi
@@ -35,3 +35,4 @@ done
 cd $LOG_DIR
 echo "" >Test.log && echo "clean log PASS"
 
+echo "" >/var/log/lpts.log  && echo "clean /var/log/lpts.log PASS"

@@ -99,6 +99,7 @@ class TestControl(BaseTest):
         if self.testmode == "speed":
             self.parallels = [1]
         #运行测试程序，要求保存结果到tmp目录，result_file命令为iozone_$parallel_type_$iter.out
+        self.mainParameters["parameters"] = " ".join(["iozone"]+args)
         lptlog.info("----------运行测试脚本")
         for parallel in self.parallels:
             parallel_args = []

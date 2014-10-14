@@ -24,10 +24,10 @@ except ImportError:
     init_env.setup(lptdir)
     os.chdir(cwd)
     
-from lpt import lpts
 from lpt.lib import readconfig
 from lpt.lib.share import utils
 from lpt.scripts import run
+from lpt.lib.error import *
     
 RUN_DIR = os.path.join(lptdir, "config/run")
 if not os.path.isdir(RUN_DIR):
@@ -53,7 +53,7 @@ def get_tests_from_file():
 class Daemon:
     '''创建LPT守护程序'''
     
-    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    def __init__(self, pidfile, stdin='/dev/null', stdout='/var/log/lpts.log', stderr='/var/log/lpts.log'):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -102,33 +102,51 @@ class Daemon:
         os.dup2(se.fileno(), sys.stderr.fileno())
   
     	#创建processid文件
-        atexit.register(self.delpid)
+        #atexit.register(self.delpid)
         pid = str(os.getpid())
         file(self.pidfile, 'w+').write('%s\n' % pid)
     
-    def _run(self, waitime=60*5, REBOOT=False):
+    def _run(self, waitime=60*5):
+        
+        REBOOT= readconfig.lpt_conf().get_boolean_value('lptd', "REBOOT")
         while 1:
             #lpts.main(argv=["--run"])
             tests=get_tests_from_file()
             if tests:
-                for test in tests:
-                    try:
-                        run.run(tools_list=[test], jobs_xml=get_jobs_from_file(), clean=True)
-                    except Exception, e:
-                        sys.stderr.write("Run jobs Error: %s" % e)
-                        continue
+                try:
+                    run.run(tools_list=tests, jobs_xml=get_jobs_from_file(), clean=True, REBOOT=REBOOT)
+                except TestOK:
+                    print "All Tests had complete."
+                    time.sleep(60)
+                    if os.path.exists(self.pidfile):
+                        os.remove(self.pidfile)
+                    break
+    
+                except Exception, e:
+                    print "Some unexpect event Occur and block running."
+                    time.sleep(60)
+                    if os.path.exists(self.pidfile):
+                        os.remove(self.pidfile)
+                    break
+                
+                else:
+                    if REBOOT:
+                        try:
+                            time.sleep(60)	
+                            if os.path.exists(self.pidfile):
+                                os.remove(self.pidfile)
+                            os.system("reboot")
+                            break
+                        except Exception,e:
+                            print "Reboot OS Error: %s" % e
                     else:
-                        REBOOT= readconfig.lpt_conf().get_boolean_value('lptd', "REBOOT")
-                        if REBOOT:
-                            try:
-                                time.sleep(60)
-                                os.system("reboot")
-                            except Exception,e:
-                                print "Reboot OS Error: %s" % e
-                        else:
-                            time.sleep(60)
+                        time.sleep(60)
+                        if os.path.exists(self.pidfile):
+                            os.remove(self.pidfile)
+                        break
             else:
                 time.sleep(waitime)
+                tests=get_tests_from_file()
                 
     def delpid(self):
     	  os.remove(self.pidfile)
@@ -166,17 +184,17 @@ class Daemon:
             while 1:
                 os.kill(pid, SIGTERM)
                 time.sleep(0.1)
-                print "Now, Kill Pid %s: PASS" % pid
         except OSError, err:
             err = str(err)
             if err.find('No such process') > 0:
+                print "Now, Kill Pid %s: PASS" % pid
                 if os.path.exists(self.pidfile):
                     os.remove(self.pidfile)
+                    return 0
             else:
                 print "Now, Kill Pid %s: FAIL" % pid 
                 print  str(err)
                 return 1
-        return 0
 
     def restart(self):
         self.stop()
@@ -185,8 +203,8 @@ class Daemon:
     def status(self):
 	     self._get_status()
          
-    def Usage():
-        print """Usage: lptd [options]
+def Usage():
+    print """Usage: lptd [options]
 -----------------------------------------------------
 start   | Begin Run lpts, but need to had create job
 stop    | Stop lpts
@@ -194,7 +212,7 @@ status  | Status lpts
 restart | stop and start
 ------------------------------------------------------
 """
-        sys.exit(1)
+    sys.exit(1)
 
 
 if __name__ == '__main__':

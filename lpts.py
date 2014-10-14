@@ -27,7 +27,6 @@ except ImportError:
     lptenv.setup(lptdir)
     os.chdir(cwd)
     
-from lpt.lib.error import *
 from optparse import OptionParser
 from optparse import OptionGroup
 import optparse
@@ -177,10 +176,10 @@ class Lpt:
                             metavar="JobName",
                             help="set job name")
         job_group.add_option('-p', '--parameter',
-			    action='store',
-			    dest='parameter',
-			    metavar="conf",
-			    help="parameter config file")
+			                   action='store',
+			                   dest='parameter',
+			                   metavar="conf",
+			                   help="parameter config file")
         job_group.add_option('-f', '--file', 
                             action='store', 
                             dest='jobs_xml',
@@ -231,6 +230,12 @@ class Lpt:
                                metavar="DIR" , 
                                default= RESULTS_DIR,
                                help="set report dir")
+        report_group.add_option("--chart",
+                                action="store_true",
+                                dest="genchart",
+                                default=False,
+                                help="generate chart, default False")
+        
         report_group.add_option('--report', 
                                action='store_const', 
                                const=2, 
@@ -257,6 +262,7 @@ class Lpt:
                             dest="compareNames", 
                             metavar="names",
                             help="point Test Objects, separate tags with commas")
+        
         parser.add_option_group(report_group)
        
         opts, args = parser.parse_args(argv)
@@ -269,27 +275,41 @@ class Lpt:
             lptlog.warning("请使用root用户执行测试用例")
             sys.exit()
             #raise UnRootError("请使用root用户执行测试用例")
+    
+    
+    def _print_tools(self, tool_list, tools_nodes, jobs_object):
+        
+        status_tools = ["%s:'%s'" %(tool, jobs_object.get_tool_status(tools_nodes, tool)) for tool in tool_list]
+        return "|".join(status_tools)
                 
     def list_jobs(self, jobs_xml):
-        print "%12s%18s%30s%30s" %("JOBID", "JOBNAME", "resultsDB", "TOOLS")
-        jobs_nodes = lptxml.search_job_nodes('job', xml_file=jobs_xml)
+        print "%12s%18s%30s%30s" %("JOBID", "JOBNAME", "resultsDB", "STATUS")
+        jobs_object = lptxml.Jobs(jobs_xml)
+        #jobs_nodes = lptxml.search_job_nodes('job', xml_file=jobs_xml)
+        jobs_nodes = jobs_object.search_job_nodes('job')
         if jobs_nodes:
             for job_node in jobs_nodes:
-                resultsdb = lptxml.get_job_text("resultsDB", xml_file=jobs_xml, job_node=job_node)
-                tool_list = map(lambda x:x.get('id'), lptxml.get_tools_nodes(job_node))
+                #resultsdb = lptxml.get_job_text("resultsDB", xml_file=jobs_xml, job_node=job_node)
+                resultsdb = jobs_object.get_job_text(job_node, "resultsDB")
+                #tool_list = map(lambda x:x.get('id'), lptxml.get_tools_nodes(job_node))
+                tools_nodes = jobs_object.get_tools_nodes(job_node)
+                tool_list = map(lambda x:x.get('id'), tools_nodes)
                 if len(tool_list) < 3:
-                    tool_name = ','.join(tool_list)
-                    print "%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tool_name) 
+                    tools_string = self._print_tools(tool_list, tools_nodes, jobs_object)
+                    print "%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tools_string) 
                 else:
-                    print "%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb,  ','.join(tool_list[0:3])) 
-                    n = 3
+                    tools_string = self._print_tools(tool_list[0:2], tools_nodes, jobs_object)
+                    print "%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tools_string) 
+                    n = 2
                     while True:
-                        if len(tool_list[n:]) > 3:
-                            print "%90s" % ','.join(tool_list[n:n+3])
-                            n = n + 3
+                        if len(tool_list[n:]) > 2:
+                            tools_string = self._print_tools(tool_list[n:n+2], tools_nodes, jobs_object)
+                            print "%90s" % tools_string
+                            n = n + 2
                             continue
                         else:
-                            print "%90s" % ','.join(tool_list[n:])
+                            tools_string = self._print_tools(tool_list[n:], tools_nodes, jobs_object)
+                            print "%90s" % tools_string
                             break
             
     def parser_opts(self, argv=sys.argv):
@@ -332,7 +352,7 @@ class Lpt:
             if opts.mode == 0:
                 if opts.JobName:
                     self.jobName = opts.JobName
-                jobs.add_job(self.tools_list, jobs_xml=self.jobs_xml, parameter=parameterConfig, jobs_attrib={'name':'%s' % self.jobName})
+                jobs.add_job(self.tools_list, jobs_xml=self.jobs_xml, parameter=parameterConfig, job_attrib={'name':'%s' % self.jobName})
                
             #定义执行任务的方法
             elif opts.mode == 1:
@@ -359,7 +379,7 @@ class Lpt:
                     os.makedirs(opts.reportdir, mode=777)
                 
                 Testreport.report(os.path.realpath(opts.resultdb), opts.reportdir, tools_list=self.tools_list,
-                                   reportname=opts.reportname, format=opts.format)
+                                   reportname=opts.reportname, format=opts.format, chart=opts.genchart)
                 
             elif opts.mode == 3:
                 if opts.compareFiles:
@@ -372,7 +392,8 @@ class Lpt:
                 else:
                     names_list = []
                
-                compare.compare(xmls_list, resultDir=opts.reportdir ,reportFile=opts.reportname, names=names_list, tools=self.tools_list, reportType=opts.format)
+                compare.compare(xmls_list, resultDir=opts.reportdir ,reportFile=opts.reportname, names=names_list, 
+                                tools=self.tools_list, reportType=opts.format, chart=opts.genchart)
             else:
                 if opts.jobs_list:
                     #检查是否存在jobs xml文件
@@ -389,10 +410,14 @@ class Lpt:
             sys.exit()
         except optparse.OptionValueError, e:
             lptlog.error("Bad option or value: %s" % e)
+        except MissXML, e:
+            lptlog.error(e)
+        except TestOK:
+            lptlog.info("ALL Test OK")
+            sys.exit()
         except Exception, e:
-            #lptlog.exception("测试中遇到异常情况，如果需要，请联系作者！！！！\n")
-            #lptlog.error(e)
-            pass
+            lptlog.exception('')
+            lptlog.debug(e)
 
 def main(argv=sys.argv):
    lpt= Lpt()

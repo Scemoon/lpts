@@ -62,7 +62,7 @@ class Draw(object):
         
         #return axis.Y(label=label, label_offset=label_offset, format=format,
          #              tic_len=tic_len, offset=offset, tic_interval=tic_len/6)
-        return axis.Y(label=label, format="%.1e", **kwargs)
+        return axis.Y(label=label, format="%.1e", tic_len=6, **kwargs)
 
     def creat_area(self, size, xaxis, yaxis, y_range=(0, None)):
         ar = area.T(size=size, x_coord = category_coord.T(self.data, 0),

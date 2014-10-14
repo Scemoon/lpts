@@ -75,7 +75,8 @@ class TestControl(BaseTest):
         for parallel in self.parallels:
             args_list.append("-c")
             args_list.append("%d" % parallel)
-    
+        
+        self.mainParameters["parameters"] = " ".join([cmd]+args_list)
         utils.run_shell2(cmd, args_list=args_list, file=os.devnull)
         #utils.system_output(cmd, args=args_list)
          #返回根目录

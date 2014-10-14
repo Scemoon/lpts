@@ -71,4 +71,12 @@ class CreatNodeError(Exception):
         self.strs = strs
     def __str__(self):
         return "创建job节点Error,详细信息: %s" % self.strs
+    
+class TestOK(ValueError):
+    ''''''
+    
+class MissXML(ValueError):
+    ''''''
 
+class SaveXMLError(Exception):
+    ''''''

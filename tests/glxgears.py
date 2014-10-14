@@ -59,7 +59,7 @@ class TestControl(BaseTest):
             
         cmd = "./Run"
         args_list = ["ubgears", "-i", "%d" % self.times]
-            
+        self.mainParameters["parameters"] = " ".join([cmd]+args_list) 
         #运行unixbench程序，进入unixbench 根目录
         os.chdir(self.tar_src_dir)
         utils.system("rm -rf results/*")

@@ -15,6 +15,7 @@ from pychart import tick_mark
 from PIL import Image
 from multiprocessing import Process
 from signal import SIGTERM 
+from lpt.lib import sysinfo
 
 
 lptdir = os.getenv("LPTROOT")
@@ -55,7 +56,7 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
                         'windows'
                         #'Graphics-Benchmarks-Index-Score'
                             ],
-        'glxgears':['Graphics-Benchmarks-Index-Score'],
+        'glxgears':['gears'],
         'stream':['Copy', 'Add', 'Triad', 'Scale'],
         'pingpong':["initialised", "completed", "total"],
         'iozone':['write', 'rewrite', 'read', 'reread', 'randread', 'randwrite'],
@@ -66,6 +67,9 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
         'dbench_fio':['Throughtput', 'max_latency']
            
         }
+
+parameters_keys = ["parameters", "parallels", "times"]
+
 class CFork:
     ''' create fork'''
     
@@ -128,9 +132,18 @@ tick_mark_list = [tick_mark.star, tick_mark.plus, tick_mark.dia, tick_mark.tri, 
 
 def get_config_value(key, tool, config=DOCS_FILE):
         return readconfig.get_conf_instance(config).get_str_value(tool, key)
-
+    
+class InfoReport(lptxml.XmlResults):
+    '''report OS informance '''
+    def __init__(self, xml):
+         super(InfoReport, self).__init__(xml)
+    
+    def get_OSinfo_dict(self):
+        return self.get_node_attrib_dict(self.root)
+    
+        
 class Report(lptxml.XmlResults):
-    ''' ''' 
+    '''get results.xml info ''' 
     def __init__(self, xml, tool):
         super(Report, self).__init__(xml)
         self.tool = tool
@@ -148,6 +161,12 @@ class Report(lptxml.XmlResults):
         
         parallelstring = self.get_tool_result_parallels(self.tool, key='parallels')
         return utils.check_int_list(parallelstring)
+    
+    def get_parameters(self):
+        parameterstring = self.get_tool_result_parallels(self.tool, key='parameters')
+        parallelstring = self.get_tool_result_parallels(self.tool, key='parallels')
+        times = self.get_tool_result_parallels(self.tool, key='times')
+        return {"parameters":parameterstring, "parallels":parallelstring, "times":times}
     
     def check_tool_nodes(self):
         if not self.search_tool_result_nodes(self.tool):
@@ -444,16 +463,62 @@ def txt_report(xml, tools_list, reportfile, width=15):
             lptlog.debug(e)
             continue
                 
-                 
+class InfoXlsReport(InfoReport):
+    '''report OS infor, format xls'''
+    def __init__(self, xls_object):
+        #super(InfoXlsReport, self).__init__(xml)
+        self.xls_write = xls_object
+        self.sheet = self.xls_write.sheet("OSInfo")               
+    
+    def write_keys(self, row=3, col=2):
+        for key in sysinfo.OSInfo.type_keys:
+            self.xls_write.write_cell(self.sheet, key, row, 1)
+            #row += 1
+            for subkey in sysinfo.OSInfo.info_keys[key]:
+                 #self.xls_write.data_title(self.sheet, [subkey], row, col_start_index=col)
+                 self.xls_write.data_seq(self.sheet, subkey, row, col)
+                 row += 1 
+            #row += 1
+            
+    def _set_text_format(self, value, row, col):
+        u_text = utils.to_unicode(value)
+        #sum of  from col 1 to col 5
+        colswidth = self.sheet.col(col).width 
+        rowheight = self.sheet.row(row).height
+        if len("    "+u_text) * 367 < colswidth:
+            pass
+        else:
+            rate = len("    "+u_text) * 367 / colswidth + 1
+            self.sheet.row(row).height = rowheight * rate
+    
+    def write_values(self, xml, name, col, row=2):
+        class XmlInfo(InfoReport):
+            def __init__(self, xml):
+                super(XmlInfo, self).__init__(xml)
+                       
+        
+        osinfo_dict = XmlInfo(xml).get_OSinfo_dict()
+          
+        self.xls_write.data_title(self.sheet, [name], row, col_start_index=col)
+        row += 1
+        for key in sysinfo.OSInfo.type_keys:
+            #row += 1
+            for subkey in sysinfo.OSInfo.info_keys[key]:
+                self.xls_write.info(self.sheet, osinfo_dict.get(subkey, "N/A"), row, col)
+                self._set_text_format(osinfo_dict.get(subkey, "N/A"), row, col)
+                self.sheet.row(row).height_mismatch=True
+                row += 1
+            #row += 1
         
 class XlsReport(Report):
     '''create xls report'''
-    def __init__(self, xml, tool, xls_object, writeType="horizontal"):
+    def __init__(self, xml, tool, xls_object, writeType="horizontal", chart=False):
         '''@parameter xls_object: xls write object, lptxls.Wxls()'''
         super(XlsReport, self).__init__(xml, tool)
         self.xls_write = xls_object
         self.sheet = xls_object.sheet(tool)
         self.writeType = writeType
+        self.chart = chart
         
     def write_title(self, row_width=3, col_width=4):
         title = "---%s Performance Results---"  % self.tool
@@ -466,10 +531,10 @@ class XlsReport(Report):
         #sum of  from col 1 to col 5
         colswidth = sum([ self.sheet.col(col).width for col in range(colmin, colmax)])
         rowheight = self.sheet.row(row).height
-        if len("    "+u_text) * 367 < colswidth:
+        if len("    "+u_text) * 430 < colswidth:
             pass
         else:
-            rate = len("    "+u_text) * 367 / colswidth + 1
+            rate = len("    "+u_text) * 430 / colswidth + 1
             self.sheet.row(row).height = rowheight * rate
             
     def write_tool_descriptions(self, row, colmin=1, colmax=5):
@@ -488,8 +553,19 @@ class XlsReport(Report):
             row = row + 1
         return row
     
+    def write_parameters(self, row, colmin, colwidth):
+        self.xls_write.section_title(self.sheet, "三.  参数", row)
+        row = row + 1
+        self.xls_write.write_cell(self.sheet, "Main Parameters", row, col=colmin)
+        row += 1
+        for key in parameters_keys:
+            self.xls_write.data_seq(self.sheet, key, row, col=colmin)
+            self.xls_write.parameters(self.sheet, self.get_parameters()[key], row, colmin+1, colmin+colwidth)
+            row = row + 1
+        return row
+        
     def write_result_title(self, row):
-        self.xls_write.section_title(self.sheet, "三.  结果", row)
+        self.xls_write.section_title(self.sheet, "四.  结果", row)
         return row + 1
 
         
@@ -583,7 +659,7 @@ class XlsReport(Report):
         return row + 1
 
     def write_indexs_img(self, row, col):
-        self.xls_write.section_title(self.sheet, "四.  图例",  row)
+        self.xls_write.section_title(self.sheet, "五.  图例",  row)
         row = row + 1
         for index in self.tool_indexs:
             self.xls_write.write_cell(self.sheet,  index, row, col)
@@ -652,9 +728,9 @@ class XlsReport(Report):
         if not self.check_tool_nodes():
             raise ValueError, " %s 测试数据为空..."
         #nodes = self.get_nodes()
-        lptlog.info("生成图片报告")
-        self.gen_index_graphic()
-        #CFork.run(self.gen_index_graphic)
+        if self.chart:
+            lptlog.info("生成图片报告")
+            self.gen_index_graphic()
         
         lptlog.info("数据写入方式： %s" % self.writeType)
         
@@ -666,38 +742,51 @@ class XlsReport(Report):
         row_index_start = row + 1
         row = self.write_tool_index(row_index_start, colmin=1, colmax=1+colwidth)
         row = row + 1
+        row = self.write_parameters(row, 1, colwidth)
+        row += 1
         row = self.write_result_title(row)
        
-        
         if self.writeType == "horizontal":
             row = self.hor_report(row)
+                          
         elif self.writeType == "vertical":
             row = self.ver_report(row)
             
-        self.write_indexs_img(row, 1)
+        if colwidth <=4:
+            for col in range(2, colwidth+1+1):
+                self.sheet.col(col).width = 16000/colwidth
+            
+        if self.chart:
+            self.write_indexs_img(row, 1)
       
-        
         #调整格式
-        self._set_text_format("descriptions", row_des+1, colmin=1, colmax=1+colwidth)
+        self._set_text_format("descriptions", row_des+1, colmin=1, colmax=1+colwidth+1)
         for index in self.tool_indexs:
-            self._set_text_format(index, row_index_start+self.tool_indexs.index(index)+1, colmin=1, colmax=1+colwidth)
+            self._set_text_format(index, row_index_start+self.tool_indexs.index(index)+1, colmin=1, colmax=1+colwidth+1)
          
     
-def xls_report(xml, tools, reportfile, writeType="horizontal"):
-    ''''''
+def xls_report(xml, tools, reportfile, writeType="horizontal", chart=False):
+    '''定义xls report 流程'''
     #初始化xls实例
     Wxls_object = lptxls.Wxls()
+   
+        #写入system info
+    lptlog.info("写入system environment") 
+    infoxls = InfoXlsReport(Wxls_object)
+    infoxls.write_keys()
+    infoxls.write_values(xml, "Opreating System Environment", 3) 
+                    
     for tool in tools:
+        lptlog.info("开始创建 %s xls测试报告"  % tool)
         if tool in ("unixbench", "x11perf", "glxgears", "bonnie"):
             writeType="vertical"
         else:
             writeType = "horizontal"                
              #创建xls测试报告
-        lptlog.info("开始创建 %s xls测试报告"  % tool)
-            
+        
         try:
             lptlog.info("开始写入 %s 测试数据到 xls测试报告 " % tool)
-            xlsreport = XlsReport(xml, tool, Wxls_object, writeType)
+            xlsreport = XlsReport(xml, tool, Wxls_object, writeType, chart=chart)
             xlsreport.report()
             lptlog.info("""
                  --------------------------------------------------------------
@@ -822,6 +911,13 @@ class ToolCompare(object):
         
         return index_result_dict
     
+    def get_parameters(self, result_xml):
+        xmlresults = lptxml.XmlResults(result_xml)
+        parameterstring = xmlresults.get_tool_result_parallels(self.tool, key='parameters')
+        parallelstring = xmlresults.get_tool_result_parallels(self.tool, key='parallels')
+        times = xmlresults.get_tool_result_parallels(self.tool, key='times')
+        return {"parameters":parameterstring, "parallels":parallelstring, "times":times}
+    
     def get_tool_keys(self):
         return INDEX_KEYS[self.tool]
     
@@ -843,6 +939,14 @@ class CompareToolXls(ToolCompare):
         else:
             raise ParallelsError, "%s 对比， parallels不同"  % self.tool
         
+        
+    def _set_row_height(self, row, height):
+        self.seet.row(row).height = height
+    
+    def _set_col_width(self, col, width):
+        self.sheet.col(col).width = width
+
+        
     def write_title(self, row_width=3, col_width=4):
         #col_width = len(self.tool_indexs)
         cmp_title = "---%s Compare Results---" % self.tool
@@ -852,15 +956,13 @@ class CompareToolXls(ToolCompare):
     def _set_text_format(self, key, row, colmin, colmax):
         text = get_config_value(key, self.tool)
         u_text = utils.to_unicode(text)
-        #colmin = 1
-        #colmax = colmin + len(self.tool_indexs)
-        #sum of  from col 1 to col 5
         colswidth = sum([ self.sheet.col(col).width for col in range(colmin, colmax)])
-        rowheight = self.sheet.row(row).height
-        if len(u_text+"    ") * 367 < colswidth:
+        #rowheight = self.sheet.row(row).height
+        rowheight = self.sheet.get_row_default_height() 
+        if len(u_text+"    ") * 430 < colswidth:
             pass
         else:
-            rate = len(u_text+"    ") * 367 / colswidth + 1
+            rate = len(u_text+"    ") * 430 / colswidth + 1
             self.sheet.row(row).height = rowheight * rate
             
     def write_tool_descriptions(self, row, colmin, colmax):
@@ -879,8 +981,21 @@ class CompareToolXls(ToolCompare):
             row = row + 1
         return row
     
+    def write_parameters(self, row, colmin, colmax):
+        self.xls_write.section_title(self.sheet, "三.  参数", row)
+        row += 1
+        for key in parameters_keys:
+            self.xls_write.write_cell(self.sheet, key, row, col=colmin)
+            row += 1
+            for xml_name in self.xmls_keys:
+                self.xls_write.data_seq(self.sheet, xml_name, row, col=1)
+                self.xls_write.parameters(self.sheet, self.get_parameters(self.xmls_dict[xml_name])[key], row, colmin+1, colmax)
+                row += 1
+            row +=1
+        return row 
+    
     def write_result_title(self, row):
-        self.xls_write.section_title(self.sheet, "三.  结果", row)
+        self.xls_write.section_title(self.sheet, "四.  结果", row)
         return row + 1
     
     def write_parallel_data_des(self, parallel, row):
@@ -891,6 +1006,7 @@ class CompareToolXls(ToolCompare):
     def write_parallel_data_title(self, row, col=1):
         self.xls_write.data_title(self.sheet, ['TEST'], row, col_start_index=col)
         self.xls_write.data_title(self.sheet, self.tool_indexs, row, col_start_index=col+1)
+       
         #for x in range(len(self.tool_indexs)):
             #if len(utils.to_unicode(self.tool_indexs[x])) * 367 > self.sheet.col(col+1+x).width:
                # self.sheet.col(col+1+x).width = len(utils.to_unicode(self.tool_indexs[x])) * 367
@@ -912,14 +1028,14 @@ class CompareToolXls(ToolCompare):
     def write_index_data_title(self, row, col=1):
         self.xls_write.data_title(self.sheet, ['TEST'], row, col_start_index=col)
         self.xls_write.data_title(self.sheet, ["Par %d" % parallel for parallel in self.parallels ], row, col_start_index=col+1)
-        
+            
     def write_index_data(self, index, row, col=1):
         for xml_name in self.xmls_keys:
             self.xls_write.data_seq(self.sheet, xml_name, row)
             self.xls_write.data(self.sheet, map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values()), row, col_start_index=col+1)
             row = row+1
             
-        return row
+        return row+1
     
    
     def _get_all_index_data(self, index):
@@ -1037,16 +1153,6 @@ class CompareToolXls(ToolCompare):
         finally:
             return row + 1
          
-       # graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
-        #pngfile = graphic_name+".png"
-        #if os.path.exists(pngfile):
-         #   bmpfile = self._tran_png_to_bmp(pngfile)
-          #  self.xls_write.insert_img(self.sheet, bmpfile, row, col)
-           # row = row + 9
-        #else:
-         #   lptlog.error("NO found %s" % pngfile)
-            
-        #return row + 1
         
     def write_par_img(self, parallel, graphic_name, row, col):
         
@@ -1068,20 +1174,9 @@ class CompareToolXls(ToolCompare):
                 lptlog.error("NO found %s" % pngfile)
         finally:
             return row + 1
-        #graphic_name = os.path.join(tmpdir,"%s_%s_P%d" % (graphic_name, self.tool, parallel))
-        #pngfile = graphic_name+".png"
-        #if os.path.exists(pngfile):
-         #   bmpfile = self._tran_png_to_bmp(pngfile)
-          ## row = row + 9
-        #else:
-         #   lptlog.error("NO found %s" % pngfile)
             
-        #return row + 1
-            
-        
-        
     
-def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="parallel"):
+def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="parallel", chart=False):
     ''' tool xls compare report'''
     tool_cmp_object = CompareToolXls(tool, tool_sheet, xls_object, xmls_dict)
     lptlog.debug("%s sheet 写入标题" % tool)
@@ -1094,7 +1189,9 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
     row = tool_cmp_object.write_tool_descriptions(row_des, colmin=1, colmax=1+colwidth) + 1
     row_index_start = row 
     row = tool_cmp_object.write_tool_index(row, colmin=1, colmax=1+colwidth) + 1
+    row = tool_cmp_object.write_parameters(row, 1, 1+colwidth)
     row = tool_cmp_object.write_result_title(row)
+    
     #产生graphic
     #tool_cmp_object.gen_graphcis(writeType, graphic_name="lpt")
     if writeType=="parallel":
@@ -1103,9 +1200,14 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
             tool_cmp_object.write_parallel_data_des(parallel, row)
             tool_cmp_object.write_parallel_data_title(row+1)
             row = tool_cmp_object.write_parallel_data(parallel, row+2)
-            #row = row + 1
-            row = tool_cmp_object.write_par_img(parallel, "cmp", row ,2)
+            row = row + 1
             
+            if colwidth <=4:
+                for col in range(2, colwidth+1):
+                    tool_cmp_object._set_col_width(col, 16000/colwidth)
+            if chart:
+                row = tool_cmp_object.write_par_img(parallel, "cmp", row ,2)
+        
     elif writeType=="index":
        # row = 8
         #for parallel in tool_cmp_object.parallels:
@@ -1113,13 +1215,21 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
             tool_cmp_object.write_index_data_des(index, row)
             tool_cmp_object.write_index_data_title(row+1)
             row = tool_cmp_object.write_index_data(index, row+2)
-            #row = row + 1
-            row = tool_cmp_object.write_index_img(index, "cmp", row, 2)
+            row = row + 1
+            if colwidth==2:
+                tool_cmp_object._set_col_width(2, 8000)
+                tool_cmp_object._set_col_width(3, 8000)
+            elif colwidth == 1:
+                tool_cmp_object._set_col_width(2, 16000)
+                
+            if chart:
+                row = tool_cmp_object.write_index_img(index, "cmp", row, 2)
             
     #调整表格宽度
-    tool_cmp_object._set_text_format("descriptions", row_des+1, 1, 1+colwidth)
+   
+    tool_cmp_object._set_text_format("descriptions", row_des+1, 1, colwidth+1+1)
     for index in INDEX_KEYS[tool]:
-        tool_cmp_object._set_text_format(index, row_index_start+INDEX_KEYS[tool].index(index)+1, 1, 1+colwidth)
+        tool_cmp_object._set_text_format(index, row_index_start+INDEX_KEYS[tool].index(index)+1, 1, 1+colwidth+1)
      
      
 class Compare(object):
@@ -1185,12 +1295,21 @@ class XlsCompare(Compare):
         self.xls_write = lptxls.Wxls()
         self.xmls_dict = self.get_xmls_dict()
     
-    
-    def cmp_tools(self):
+    def cmp_tools(self, chart=False):
         tools =  self.get_cmp_tools()
         if not tools:
             raise ValueError, "result.xml中不包含相同的tool"
         lptlog.info("----最终对比工具: %s " % utils.list_to_str(tools))
+         #写入system info
+        lptlog.info("写入system environment")
+        infoxls = InfoXlsReport(self.xls_write )
+        infoxls.write_keys()
+
+        col = 3
+        for key, value in self.xmls_dict.iteritems():
+            infoxls.write_values(value, key, col)
+            col += 1
+    
         for tool in tools:
             lptlog.debug("创建 %s sheet" % tool)
             tool_sheet = self.xls_write.sheet(tool)
@@ -1200,7 +1319,7 @@ class XlsCompare(Compare):
                     writeType = "parallel"
                 else:
                     writeType = "index"
-                compare_tool_xls(tool, tool_sheet, self.xls_write, self.xmls_dict, writeType=writeType)
+                compare_tool_xls(tool, tool_sheet, self.xls_write, self.xmls_dict, writeType=writeType, chart=chart)
                 lptlog.info("""
                  --------------------------------------------------------------
                          创建 %s 对比测试报告：PASS
@@ -1217,3 +1336,7 @@ class XlsCompare(Compare):
             
     def save(self):
         self.xls_write.save(self.report_file)
+        
+
+
+    

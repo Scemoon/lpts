@@ -16,6 +16,17 @@ def cell_style():
     style.pattern = base_xls.pattern(solid_pattern=0x01, fore_colour=0x2B)
     return style
 
+def info_style():
+    '''
+    '''
+    style = xlwt.XFStyle()
+    style.font = base_xls.font(bold=True, colour=0x08)
+    style.alignment = base_xls.alignment()
+    style.alignment.wrap = 1
+    style.borders = base_xls.borders(line=0x01)
+    style.pattern = base_xls.pattern(solid_pattern=0x00, fore_colour=0x2A)
+    return style
+
 def title_style():
     '''
     '''
@@ -94,8 +105,8 @@ class Wxls(base_xls.Write):
     def write_cell(self, sheet, value, row, col):
         '''写入单个cell'''
         self.write(sheet, row, col, value, cell_style())
-        if len(utils.to_unicode(value)) * 367  > sheet.col(col).width:
-            sheet.col(col).width = len(utils.to_unicode(value)) * 367
+        if len(utils.to_unicode(value)) * 430  > sheet.col(col).width:
+            sheet.col(col).width = len(utils.to_unicode(value)) * 430
         
     def description(self, sheet, description, row, colmin=1, colmax=5):
         '''
@@ -103,7 +114,11 @@ class Wxls(base_xls.Write):
         '''
         self.write_merge(sheet, row, row, colmin, colmax, description, description_style())
         sheet.row(row).height_mismatch=True
-  
+        
+    def parameters(self, sheet, params, row, colmin, colmax):
+        self.write_merge(sheet, row, row, colmin, colmax, params, data_style())
+        sheet.row(row).height_mismatch=True
+        
     def data_title(self, sheet, data_title_list, row, col_start_index=1):
         '''写入数据名称
         @param data_title_list: 第一行为标题，这里输入的是一个list
@@ -124,7 +139,10 @@ class Wxls(base_xls.Write):
             font_colour = 0x08
         except Exception:
             seq_format = "%s"
-            font_colour = 0x0A
+            if seq == "Average":
+                font_colour = 0x0A
+            else:
+                font_colour = 0x08
         
         self.write(sheet, row, col, seq_format % seq, data_seq_style(font_colour=font_colour))
         if len(utils.to_unicode(seq_format % seq)) * 367  > sheet.col(col).width:
@@ -137,6 +155,11 @@ class Wxls(base_xls.Write):
             for data in data_list:
                 self.write(sheet, row, index, data, data_style())
                 index += 1
+        
+    def info(self, sheet, value, row, col):
+        '''写入单个cell'''
+        self.write(sheet, row, col, value, info_style())
+        sheet.col(col).width = 16000
                 
     def insert_img(self, sheet, img, row, col):
-        sheet.insert_bitmap(img, row, col, scale_x=1, scale_y=1)
+        sheet.insert_bitmap(img, row, col, 0, 2, scale_x=1, scale_y=1)

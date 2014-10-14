@@ -82,7 +82,7 @@ def getopts(argv=sys.argv):
     else:
         compare(xmls_list, names=names_list, reportFile=report_file, tools=tests_list)
     
-def compare(xmls_list, resultDir=os.getcwd() ,reportFile=None, names=[], tools=[], reportType="xls"):
+def compare(xmls_list, resultDir=os.getcwd() ,reportFile=None, names=[], tools=[], reportType="xls", chart=False):
     '''对比多个result xml文件， 如果指定tools，那么只对比tools,但tools必须包含在所有xmls文件中
     @param xmls: results xml ,type list
     @param names: 自定义对比名称，用于输出显示，type list, default []
@@ -114,8 +114,8 @@ def compare(xmls_list, resultDir=os.getcwd() ,reportFile=None, names=[], tools=[
     lptlog.info("@@@@@@@--对比测试报告类型: %s" % reportType)
     lptlog.info("@@@@@@@--对比测试报告: %s" % report_abs_file)
     if reportType == "xls":
-        cmpobject = lptreport.XlsCompare(xmls_list, report_abs_file, input_tools=tools, input_name_list=names )
-        cmpobject.cmp_tools()
+        cmpobject = lptreport.XlsCompare(xmls_list, report_abs_file, input_tools=tools, input_name_list=names)
+        cmpobject.cmp_tools(chart=chart)
         cmpobject.save()
     else:
         lptlog.warning(" %s 对比测试报告正在开发中..."  % reportType)

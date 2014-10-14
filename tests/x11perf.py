@@ -56,6 +56,7 @@ class TestControl(BaseTest):
         if os.path.exists("/usr/bin/x11perf") or  os.path.exists("/usr/local/bin/x11perf"):
             lptlog.info("将使用系统x11perf程序")
         else:
+            raise ValueError, "请安装x11perf程序, xort-x11-apps"
             lptlog.info("系统中并没有安装x11perf程序，由lpt安装x11perf-1.5.3程序，如果系统缺少依赖，请安装提示安装依赖")
             utils.has_file("libX11-devel", "/usr/include/X11/Xlib.h")
             utils.has_file("libXmu-devel", "/usr/include/X11/Xmu/Xmu.h")
@@ -78,8 +79,9 @@ class TestControl(BaseTest):
         
         #执行测试程序
         lptlog.info("---------运行测试脚本")
+        self.mainParameters["parameters"] = " ".join([cmd]+args_list)
         utils.run_shell2(cmd, args_list=args_list, file=os.devnull)
-    
+     
         #返回根目录
         os.chdir(self.lpt_root)
         

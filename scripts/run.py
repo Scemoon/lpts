@@ -18,6 +18,7 @@ from lpt.lib.error import *
 from lpt.lib import lptlog
 from lpt.tests import control
 
+
 LPTROOT = os.getenv('LPTROOT')
 DB_DIR = os.path.join(LPTROOT, 'db')
 if not os.path.isdir(DB_DIR):
@@ -55,9 +56,7 @@ __END_MSG = '''
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~''' 
 
 
-def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=False):
-    if not jobs_xml:
-        jobs_xml=JOBS_XML
+def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=False, REBOOT=False):
     jobs = lptxml.Jobs(jobs_xml)
     if job_id is None:
         try:
@@ -84,13 +83,13 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
                
     if job_node is None:
         #lptlog.error()
-        raise ValueError, "没有找到对应的job任务， 请核对jobs.xml或者重新创建测试任务"
+        raise MissXML, "没有找到对应的job任务， 请核对jobs.xml或者重新创建测试任务"
     
     #判断所有工具是否已经全部执行完毕
     no_exec_tools_nodes_list = jobs.get_noexec_tools_nodes(job_node)
     if not no_exec_tools_nodes_list:
         #lptlog.warning('任务中所有工具状态都已正确执行， 请重新创建测试任务')
-        raise ValueError, "任务中所有工具状态都已正确执行， 请重新创建测试任务"
+        raise TestOK, "任务中所有工具状态都已正确执行， 请重新创建测试任务"
     else:
         no_exec_tools = map(jobs.get_tool_name, no_exec_tools_nodes_list)
         
@@ -102,38 +101,46 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
         
         if not test_tools:
             #lptlog.warning('指定运行的测试工具已经全部执行完毕, 请重新创建任务')
-            raise ValueError, '指定运行的测试工具已经全部执行完毕, 请重新创建任务'
+            raise TestOK, '指定运行的测试工具已经全部执行完毕, 请重新创建任务'
         else:
             tools_string = " ".join(test_tools)
             lptlog.debug("尚未执行完毕的测试工具集:%s" % tools_string)
        
     for tool in test_tools:
+        lptlog.info(__BEGIN_MSG % tool)
         try:
-            lptlog.info(__BEGIN_MSG % tool)
             control.run(tool, jobs_xml, job_node, clean=clean)
-            #python 2.7
-            #jobs.set_tool_status(job_node.find("tool[@id='%s']" % tool), 'ok')
-            #python 2.6
-            tool_node = filter(lambda x:x.get("id")==tool, jobs.get_tools_nodes(job_node))[0]
-            jobs.set_tool_status(tool_node, 'ok')
-            lptlog.info('''
-                    ----------------------------------
-                    +       %s 测试:PASS    +
-                    ----------------------------------
-                    ''' % tool)     
         except Exception, e:
-            lptlog.error(e)
+            lptlog.debug(e)
             lptlog.error('''
                     ----------------------------------
                     +       %s 测试:FAIL    +
                     ----------------------------------
                     ''' % tool) 
-            lptlog.exception("")
-        finally:
             lptlog.info(__END_MSG % tool)
+            #lptlog.exception("")
+            if test_tools[-1] == tool:
+                raise TestOK, "Test Over, but Some Case FAIL"
+            else:
+                continue
+        else:
+            #python 2.7
+            #jobs.set_tool_status(job_node.find("tool[@id='%s']" % tool), 'ok')
+            #python 2.6
+            tool_node = filter(lambda x:x.get("id")==tool, jobs.get_tools_nodes(job_node))[0]
+            jobs.set_tool_status(tool_node, 'ok')
             jobs.save_file()  
-            
-        continue
+            lptlog.info('''
+                    ----------------------------------
+                    +       %s 测试:PASS    +
+                    ----------------------------------
+                    ''' % tool)     
+            lptlog.info(__END_MSG % tool)
+           
+            if REBOOT:
+                break
+    
+ 
 
 
 def main():

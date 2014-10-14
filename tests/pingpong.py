@@ -45,6 +45,7 @@ class TestControl(BaseTest):
                  
            #执行测试程序
         lptlog.info("----------运行测试脚本")
+        self.mainParameters["parameters"] = " ".join(["pprun", '-c', "%d" % self.times, '-t', "games" ])
         for game in self.games:
             lptlog.info("执行 %s games" % game)
             args = ['-b', self.bin_dir, '-c', "%d" % self.times, '-t', "%d" % game, '-d', self.tmp_dir]

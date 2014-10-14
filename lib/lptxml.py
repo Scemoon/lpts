@@ -11,6 +11,7 @@ from lpt.lib import lptlog
 from lpt.lib.error import *
 from lpt.lib.share import utils
 import datetime
+from lpt.lib import sysinfo
 
 LPTROOT = os.getenv('LPTROOT')
 PARAMETER_FILE = os.path.join(LPTROOT, 'config/parameter.conf')
@@ -46,7 +47,7 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
                         'windows'
                         #'Graphics-Benchmarks-Index-Score'
                             ],
-        'glxgears':['Graphics-Benchmarks-Index-Score'],
+        'glxgears':['gears'],
         'stream':['Copy', 'Add', 'Triad', 'Scale'],
         'pingpong':["initialised", "completed", "total"],
         'iozone':['write', 'rewrite', 'read', 'reread', 'randread', 'randwrite'],
@@ -147,7 +148,7 @@ def config_to_xml(config_file, xml_file, root_tag, father_node_tag, node_tag, no
     
 
 class Jobs(base_xml.RWXml):
-    '''
+    '''create jobs.xml
     '''
     def __init__(self, xml_file=JOBS_XML):
         super(Jobs, self).__init__(xml_file)
@@ -164,18 +165,18 @@ class Jobs(base_xml.RWXml):
             self.init_tree()
             self.root = self.get_root()
             
-    def create_job(self, tools_list, parameter, job_attrib={}):
-        '''
+    def create_job(self, tools_list, parameter, job_attrib={}, resultXmlName="results"):
+        '''创建jobs.xml结构
         '''
         DateString = datetime.datetime.now().strftime('%y%m%d%H%M%S')
+        #results = 'result_%s.xml' % DateString
+        results = '%s_%s.xml' % (resultXmlName, DateString)
         
-        results = 'result_%s.xml' % DateString
-        
-        job = self.create_node('job', dict({'id':DateString}, **job_attrib))
+        job = self.create_node('job', dict({'id':DateString, 'status':"N/A"}, **job_attrib))
         lptlog.info('任务ID: %s' % DateString)
         
         self.create_element(job, 'resultsDB', results)
-        lptlog.info('result的xml文件:  %s' % results)
+        lptlog.info('xml results文件:  %s' % results)
         
         lptlog.debug("创建参数")
         conftoxml = ConfigToXml(parameter, self.xml_file)
@@ -253,14 +254,17 @@ class Jobs(base_xml.RWXml):
         #python 2.6
         return   filter(lambda x:x.get('status')=='no', job_node.findall("tool"))
     
+    def get_tool_attrib(self, tool_node, key):
+        return self.get_node_attrib_value(tool_node, key)
+    
     def get_tool_name(self, tool_node):
         return self.get_node_attrib_value(tool_node, 'id')
     
     
-    def get_job_test_status(self, tool_node):
-        '''获取工具节点执行状态ok or no
-        '''
-        return self.get_node_attrib_value(tool_node, 'status')
+    #def get_job_test_status(self, tool_node):
+       # '''获取工具节点执行状态ok or no
+        #'''
+       # return self.get_node_attrib_value(tool_node, 'status')
     
     def get_tool_status(self, tools_nodes, tool):
         '''
@@ -269,8 +273,9 @@ class Jobs(base_xml.RWXml):
         @param tool: 工具名称
         @return: 'ok' 或 ' no' or None
         '''
+
         for node in tools_nodes:
-            if self.get_node_attrib_value('id') == tool:
+            if self.get_node_attrib_value(node, 'id') == tool:
                 return self.get_node_attrib_value(node, 'status')
             else:
                 continue
@@ -289,7 +294,7 @@ class Jobs(base_xml.RWXml):
         return self.get_element_text(element)
     
   
-def add_job(xml_file, tools_list, parameter, job_attrib={}):
+def add_job(xml_file, tools_list, parameter, job_attrib={}, resultXmlName="results"):
     '''保存测试任务到xml_file文件
     @param xml_file: 记录测试任务
     @param tools_list:测试结合
@@ -297,8 +302,7 @@ def add_job(xml_file, tools_list, parameter, job_attrib={}):
     '''
     #初始化实例
     jobs = Jobs(xml_file)
-    
-    job = jobs.create_job(tools_list, parameter, job_attrib)
+    job = jobs.create_job(tools_list, parameter, job_attrib=job_attrib, resultXmlName=resultXmlName)
     #添加job
     jobs.add_job(job)
 
@@ -359,6 +363,7 @@ def get_tool_node(tool, jobs_xml=JOBS_XML, job_node=None):
    # return job_node.find("tool[@id='%s']" % tool)
    #python 2.6
     return filter(lambda x:x.get('id')==tool, jobs.get_tools_nodes(job_node))[0]
+
         
 def get_job_result_file(jobs_xml=JOBS_XML, job_node=None):
     '''
@@ -386,6 +391,7 @@ class XmlResults(base_xml.RWXml):
     '''
     def __init__(self, xml_file):
         super(XmlResults, self).__init__(xml_file)
+        self.root_attrib = sysinfo.OSInfo.keys
       
         #初始化
         if not os.path.exists(self.xml_file):
@@ -394,12 +400,17 @@ class XmlResults(base_xml.RWXml):
                 self.create_tree()
                 
              #创建主节点
-            self.root = self.create_root_node('results')
+            self.root = self.create_root_node('results', self.root_attrib)
     
         else:
             self.init_tree()
             self.root = self.get_root()
 
+    #def _get_root_attrib(self):
+     #  for subdic in sysinfo.OSysinfo.keys.itervalues():
+      #      root_dic = dict(root_dic, **subdic)
+       # return root_dic
+    
   
     def save_result_node(self, result_node_tag, result_node_attrib, result_list, **kargs):
         '''
@@ -509,9 +520,6 @@ def get_result_parallels(resultDB, tool):
     xmlresult = XmlResults(resultDB)
     return xmlresult.get_tool_result_parallels(tool)
 
-def add_sysinfo(xmlf_file, sysinfo_node):
-    pass
- 
 
 
   
