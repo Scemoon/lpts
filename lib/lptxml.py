@@ -12,6 +12,7 @@ from lpt.lib.error import *
 from lpt.lib.share import utils
 import datetime
 from lpt.lib import sysinfo
+from lpt.lib import lmbench
 
 LPTROOT = os.getenv('LPTROOT')
 PARAMETER_FILE = os.path.join(LPTROOT, 'config/parameter.conf')
@@ -55,9 +56,8 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
                 "getc","getc_cpu","get_block","get_block_cpu","seeks","seeks_cpu","seq_create",
                 "seq_create_cpu","seq_stat","seq_stat_cpu","seq_del","seq_del_cpu","ran_create","ran_create_cpu",
                 "ran_stat","ran_stat_cpu","ran_del","ran_del_cpu" ],
-        'dbench_fio':['Throughtput', 'max_latency']
-           
-                   
+        'dbench_fio':['Throughtput', 'max_latency'],
+        'lmbench':lmbench.get_index_list()
         }
 class ConfigToXml(readconfig.BaseConfig, base_xml.RWXml):
     '''
@@ -430,6 +430,7 @@ class XmlResults(base_xml.RWXml):
                 keys = INDEX_KEYS.get(result_node_tag)
             else:
                 keys = result_list_one[1].keys()
+        
             for key in keys:
                 self.create_element(result_node, key, result_list_one[1][key])
             self.add_node(self.root, result_node)

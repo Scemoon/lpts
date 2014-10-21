@@ -50,8 +50,8 @@ class stream(test.test, lpt_test.BaseTest):
         utils.make()
 
     def run_once(self):
-	tool_node = self.check_tool_result_node()
-
+        tool_node = self.check_tool_result_node()
+        self.mainParameters["parameters"] = "stream_mu"
         lptlog.info("-----------开始获取测试参数")
         testmode = self.get_config_value(tool_node, "testmode", "default", valueType=str)
         lptlog.info("测试模式： %s" % testmode)
@@ -69,7 +69,7 @@ class stream(test.test, lpt_test.BaseTest):
             self.parallels = [1]
 
         lptlog.info("----------运行测试脚本")
-	os.chdir(self.srcdir)
+        os.chdir(self.srcdir)
         #执行测试程序
         for parallel in self.parallels:
             if parallel == 1:
@@ -77,20 +77,20 @@ class stream(test.test, lpt_test.BaseTest):
             else:
                 os.environ['OMP_NUM_THREADS'] = str(parallel)
             for iter in range(self.times):
-                lptlog.info('并行数 %d, 第 %d 测试：PASS' % (parallel, iter+1))
-                tmp_result_file = os.path.join(self.lpttmpdir, "stream_%d_%d.out" %(parallel, iter+1))
+                #tmp_result_file = os.path.join(self.lpttmpdir, "stream_%d_%d.out" %(parallel, iter+1))
                 #utils.run_shell2(cmd, args_list=[], file=tmp_result_file)
-		self.report_data = utils.system_output(cmd)
-        	self.results_path = os.path.join(self.resultsdir,
-                                         'stream_%d_%d.out' % (parallel, iter+1))
-                utils.open_write_close(self.results_path, self.report_data)	
+                #self.report_data = utils.system_output(cmd)
+                self.results_path = os.path.join(self.resultsdir, "stream_%d_%d.out" %(parallel, iter+1))
+                lutils.run_shell2(cmd, args_list=[], file=self.results_path)
+                lptlog.info('并行数 %d, 第 %d 测试：PASS' % (parallel, iter+1))
+                #utils.open_write_close(self.results_path, self.report_data)	
 
 	#create result list
         self.create_result()
 	#save to result.xml
-	self.save_results_to_xml()
+        self.save_results_to_xml()
 	#create txt report
-	self.txt_report()
+        self.txt_report()
 
     def create_result(self):
         #method.check_none(self.parallels, self.times)
@@ -103,7 +103,7 @@ class stream(test.test, lpt_test.BaseTest):
                 #tmp_result_file = os.path.join(self.tmp_dir, "stream_%d_%d.out" %(parallel, iter+1))
                 tmp_result_file = os.path.join(self.resultsdir, "stream_%d_%d.out" %(parallel, iter+1))
                 if not os.path.isfile(tmp_result_file):
-		    lptlog.warning("测试数据 %s 不存在" % tmp_result_file)
+                    lptlog.warning("测试数据 %s 不存在" % tmp_result_file)
                     continue
 
                 result_tuple = self.__search_result(tmp_result_file)
@@ -133,10 +133,7 @@ class stream(test.test, lpt_test.BaseTest):
         return (0, 0, 0, 0)
 
     def after_run_once(self):
-
-	#os.system("ln -s %s %s/db" % (self.lptdbdir, self.resultsdir))
-	#os.system("ln -s %s/%s %s/report"  % (self.lptresultsdir, self.tool, self.resultsdir))
-	os.system("cp -r %s %s/db" % (self.lptdbdir, self.resultsdir))
-	os.system("cp  -r %s/%s %s/report"  % (self.lptresultsdir, self.tool, self.resultsdir))
+        os.system("cp -r %s %s/db" % (self.lptdbdir, self.resultsdir))
+        os.system("cp  -r %s/%s %s/report"  % (self.lptresultsdir, self.tool, self.resultsdir))
 
        

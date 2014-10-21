@@ -12,8 +12,6 @@ from lpt.lib.share import utils
 from lpt.lib import lptreport
 import glob
 
-
-
 unixbench_keys = ['Dhrystone2-using-register-variables',
                     'Double-Precision-Whetstone',
                     'Execl-Throughput',

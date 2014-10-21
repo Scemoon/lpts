@@ -604,6 +604,12 @@ def read_cpuinfo(match):
     else:
         return ("N/A", "N/A")
 
+def get_physicalCPU():
+    try:
+        num = int(read_cpuinfo('(physical\s+id)\s+:\s+(\S+)')[1]) + 1
+        return str(num)
+    except Exception:
+        return "N/A"
 
 def read_meminfo(match):
     meminfo = open('/proc/meminfo').read()
@@ -645,6 +651,7 @@ def get_javaVersion():
         return (output.split("\n")[0], output.split("\n")[1], output.split("\n")[2])
     except Exception:
         return ("N/A","N/A","N/A")
+    
 def get_cmd_output(cmd):
     try:
         output = commands.getoutput(cmd)
@@ -668,17 +675,36 @@ def get_services():
     if os.path.exists("/usr/lib/systemd"):
         try:
             output = utils.system_output("systemctl -t service list-unit-files|grep enabled|awk  '{print $1}'")
-            print output
             return ",".join(output.split())
         except Exception:
             return "N/A"
     else:
         try:
             output = utils.system_output("chkconfig  --list|grep -E '(5:启用|5:on)'|awk '{print $1}'")
-            print output
             return ",".join(output.split())
         except Exception:
             return "N/A"
+    
+def get_OSRelease():
+    try:
+        status, output = commands.getstatusoutput("cat /etc/*-release")
+        if status >0:
+            return "N/A"
+        else:
+            return output.split("\n")[-1]
+    except Exception:
+        return "N/A"
+   
+def get_OSBuild():
+    try:
+        status ,output = commands.getstatusoutput("cat /etc/*-Version").split("\n")
+        if status >0:
+            return "N/A"
+        else:
+            return output.split("\n")[-1]
+    except Exception:
+        return "N/A"
+
     
 class OSInfo(object):
     '''get OS infor'''
@@ -689,10 +715,9 @@ class OSInfo(object):
             "Processor":platform.processor(),
             "Arch":" ".join(platform.architecture()),
             "BogoMIPS":read_cpuinfo('(bogomips)\s+:\s+(\S+)')[1],
+            "PhysicalCpu":get_physicalCPU(),
             "CpuCores":read_cpuinfo('(cpu\s+cores)\s+:\s+(\S+)')[1],
-            "Siblings":read_cpuinfo('(siblings)\s+:\s+(\S+)')[1],
-            "CpuCount":"%d" % count_cpus(),
-                    
+            "LogicCpu":"%d" % count_cpus(),
             "MemModel":"N/A",
             "MemMhz":"N/A",
             "MemTotal":"%s KiB" % read_meminfo('(MemTotal):\s+(\d+)')[1],
@@ -707,7 +732,9 @@ class OSInfo(object):
             "CardModel":"N/A",
             "speed":"N/A",
             
-            "Platform":platform.platform(),
+            #"Platform":platform.platform(),
+            "Release":get_OSRelease(),
+            "Build":get_OSBuild(),
             "Kernel":platform.release(),
             "Version":platform.version(),
             "Filesystem":get_RootFilesystem()[0],
@@ -731,16 +758,15 @@ class OSInfo(object):
                   }
     
     info_keys = {
-                 "CPU":["CpuVendor", "CpuModel", "CpuMhz", "Processor", "Arch", "BogoMIPS", "CpuCores", "Siblings", "CpuCount", "BogoMIPS"],
+                 "CPU":["CpuVendor", "CpuModel", "CpuMhz", "Processor", "Arch", "PhysicalCpu", "CpuCores", "LogicCpu", "BogoMIPS"],
                  "Mem":["MemModel", "MemMhz", "MemTotal", "SwapTotal",  "Shmem", "VmallocTotal",  "Hugepagesize"],
                  "Disk":["DiskInfo", "DiskSize"],
                  "Network":["CardModel", "speed"],
-                 "OS": [ "Platform", "Kernel", "Version",  "KernelCmd", "Runlevel", "IOSchedule",
+                 "OS": [ "Release", 'Build', "Kernel", "Version",  "KernelCmd", "Runlevel", "IOSchedule",
                         "Filesystem", "FilesystemType","FilesystemSize", 
                         "Gcc", "Glibc", "JavaVersion", "JavaBuild", "JavaMode", "Python",
                         "RpmNums", "IPtables", "SELinux", "Servers"],
                      }
-    
     type_keys = ["CPU", "Mem", "Disk", "Network", "OS"]
     
     def __setitem__(self, item, value):

@@ -62,9 +62,9 @@ class unixbench(test.test, lpt_test.BaseTest):
     version = 1
 
     def __init__(self, job, bindir, outputdir):
-	tool = str(self.__class__.__name__)
-	lpt_test.BaseTest.__init__(self, tool)
-	test.test.__init__(self, job, bindir, outputdir)
+        tool = str(self.__class__.__name__)
+        lpt_test.BaseTest.__init__(self, tool)
+        test.test.__init__(self, job, bindir, outputdir)
         
 
     def initialize(self):
@@ -86,8 +86,7 @@ class unixbench(test.test, lpt_test.BaseTest):
         utils.make()
 
     def run_once(self):
-
-	tool_node = self.check_tool_result_node()
+        tool_node = self.check_tool_result_node()
 
         lptlog.info("----------开始获取测试参数")
 
@@ -114,7 +113,7 @@ class unixbench(test.test, lpt_test.BaseTest):
         for parallel in self.parallels:
             args_list.append("-c")
             args_list.append("%d" % parallel)
-
+        self.mainParameters["parameters"] = " ".join([cmd]+args_list)
         #utils.run_shell2(cmd, args_list=args_list, file=os.devnull)
         #utils.system_output(cmd, args=args_list)
          #返回根目录
@@ -127,7 +126,7 @@ class unixbench(test.test, lpt_test.BaseTest):
         utils.open_write_close(self.results_path, self.report_data)
 
         #数据处理
-	self.create_result()
+        self.create_result()
         self.save_results_to_xml()
         #create txt report
         self.txt_report()

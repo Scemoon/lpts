@@ -31,7 +31,7 @@ from lpt.lib.error import *
     
 RUN_DIR = os.path.join(lptdir, "config/run")
 if not os.path.isdir(RUN_DIR):
-    os.makedir(RUN_DIR)
+    os.makedirs(RUN_DIR)
 PID_FILE = os.path.join(RUN_DIR, "lptd.pid")
 
 def get_jobs_from_file():

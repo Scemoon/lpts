@@ -11,7 +11,7 @@ def cell_style():
     '''
     style = xlwt.XFStyle()
     style.font = base_xls.font(bold=True, colour=0x08)
-    style.alignment = base_xls.alignment(horz=0x02)
+    style.alignment = base_xls.alignment(horz=0x01)
     style.borders = base_xls.borders(line=0x01)
     style.pattern = base_xls.pattern(solid_pattern=0x01, fore_colour=0x2B)
     return style
@@ -102,11 +102,14 @@ class Wxls(base_xls.Write):
         '''写入章节标题'''
         self.write(sheet, row, col, section_title, section_title_style())
         
+    def lmbench_des(self, sheet, section_des, row, colmin, colmax):
+         self.write_merge(sheet, row, row, colmin, colmax, section_des, cell_style())
+        
     def write_cell(self, sheet, value, row, col):
         '''写入单个cell'''
         self.write(sheet, row, col, value, cell_style())
-        if len(utils.to_unicode(value)) * 430  > sheet.col(col).width:
-            sheet.col(col).width = len(utils.to_unicode(value)) * 430
+        if len(utils.to_unicode(value)) * 367  > sheet.col(col).width:
+            sheet.col(col).width = len(utils.to_unicode(value)) * 367
         
     def description(self, sheet, description, row, colmin=1, colmax=5):
         '''
@@ -135,18 +138,16 @@ class Wxls(base_xls.Write):
         '''写入测试次数,判断seq是否等于Average,如果为整型，将以整型写入，如果为字符，将以字符写入'''
         try:
             seq = int(seq)
-            seq_format = "%d"
             font_colour = 0x08
         except Exception:
-            seq_format = "%s"
             if seq == "Average":
                 font_colour = 0x0A
             else:
                 font_colour = 0x08
         
-        self.write(sheet, row, col, seq_format % seq, data_seq_style(font_colour=font_colour))
-        if len(utils.to_unicode(seq_format % seq)) * 367  > sheet.col(col).width:
-            sheet.col(col).width = len(utils.to_unicode(seq_format % seq)) * 367
+        self.write(sheet, row, col, seq, data_seq_style(font_colour=font_colour))
+        if len(utils.to_unicode(str(seq))) * 367  > sheet.col(col).width:
+            sheet.col(col).width = len(utils.to_unicode(str(seq))) * 367
         
     def data(self, sheet, data_list, row, col_start_index=1):
         '''写入数据 '''

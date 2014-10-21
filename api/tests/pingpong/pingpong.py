@@ -63,7 +63,8 @@ class pingpong(test.test, lpt_test.BaseTest):
         cmd = "./pingpong.sh"
 
            #执行测试程序
-	os.chdir(self.srcdir)
+        os.chdir(self.srcdir)
+        self.mainParameters["parameters"] = " ".join(["pprun", '-c', "%d" % self.times, '-t', "games" ])
         lptlog.info("----------运行测试脚本")
         for game in self.games:
             lptlog.info("执行 %s games" % game)

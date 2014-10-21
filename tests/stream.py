@@ -19,12 +19,11 @@ class TestControl(BaseTest):
     '''
     def __init__(self, jobs_xml, job_node, tool, tarball='stream-5.9-1.tar.bz2'):
         super(TestControl, self).__init__(jobs_xml, job_node, tool, tarball)
-        self.processBin = os.path.join(self.bin_dir, 'stream')
-        self.processBin2 = os.path.join(self.bin_dir, 'stream_mu')
         self.times = None
         self.parallels = None
-               
-        
+        self.processBin = os.path.join(self.bin_dir, 'stream')
+        self.processBin2 = os.path.join(self.bin_dir, 'stream_mu')
+
     def setup(self):
         '''编译源码，设置程序
         '''

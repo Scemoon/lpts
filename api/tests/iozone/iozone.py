@@ -71,7 +71,7 @@ class iozone(test.test, lpt_test.BaseTest):
             utils.make('linux-powerpc64')
         elif (arch == 'x86_64'):
             utils.make('linux-AMD64')
-	elif (arch == "mips64el"):
+        elif (arch == "mips64el"):
             utils.make('linux-AMD64')
         else:
             utils.make('linux')
@@ -84,7 +84,7 @@ class iozone(test.test, lpt_test.BaseTest):
         :param dir: IOzone file generation dir.
         :param args: Arguments to the iozone program.
         """
-	tool_node = self.check_tool_result_node()
+        tool_node = self.check_tool_result_node()
 
         lptlog.info("----------开始获取测试参数")
 
@@ -133,10 +133,11 @@ class iozone(test.test, lpt_test.BaseTest):
         if self.testmode == "speed":
             self.parallels = [1]
         #运行测试程序，要求保存结果到tmp目录，result_file命令为iozone_$parallel_type_$iter.out
+        self.mainParameters["parameters"] = " ".join(["iozone"]+args)
         lptlog.info("----------运行测试脚本")
-	cmd = os.path.join(self.srcdir, 'src', 'current', 'iozone')
+        cmd = os.path.join(self.srcdir, 'src', 'current', 'iozone')
         for parallel in self.parallels:
-	    parallel_args = []
+            parallel_args = []
             lptlog.info("%s 并行测试" % parallel)
             if self.testmode == 'throughput':
                 parallel_args.append("-t")
@@ -165,28 +166,6 @@ class iozone(test.test, lpt_test.BaseTest):
                 lutils.run_shell2(cmd, args_list=args+parallel_args, file=iozone_iter_result_file)
                 lptlog.info("%s %s方式, %s并行, 第%d次测试数据保存在 %s 中"  % (self.tool, self.testmode, parallel, (iter+1), iozone_iter_result_file))
 
-
-                #处理测试结果
-            #self.result_list = deal_data(self.tmp_dir, self.testmode, self.times, self.parallels)
-
-        #if not dir:
-        #    dir = self.tmpdir
-        #os.chdir(dir)
-        #if not args:
-         #   args = '-a'
-
-        #cmd = os.path.join(self.srcdir, 'src', 'current', 'iozone')
-        #self.results = utils.system_output('%s %s' % (cmd, args))
-        #self.auto_mode = ("-a" in args)
-
-        #self.results_path = os.path.join(self.resultsdir,
- #                                        'raw_output_%s' % self.iteration)
-        #self.analysisdir = os.path.join(self.resultsdir,
-#                                        'analysis_%s' % self.iteration)
-
-        #utils.open_write_close(self.results_path, self.results)
-
-	#create result list
         self.create_result()
         #save to result.xml
         self.save_results_to_xml()

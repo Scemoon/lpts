@@ -32,7 +32,7 @@ __START_MSG = '''
   #                                                                #
   # @author:     Scemoon                                           #
   # @contact:    mengsan8325150@gmail.com                          #
-  # @version:    LPT3.0                                            #                                                               
+  # @version:    LPT3.0                                             #                                                               
   #                                                                #
    ################################################################
     '''

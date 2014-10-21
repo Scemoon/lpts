@@ -156,7 +156,6 @@ class TestControl(BaseTest):
                 self.result_list.append([self.create_result_node_attrib("Average", self.times, parallel, self.parallels), parallel_average_dic])
        
 
-       
     def __match_index(self, file):
         '''
         @return: 测试指标，dict

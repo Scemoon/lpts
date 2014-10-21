@@ -20,7 +20,7 @@ class TestControl(BaseTest):
     def __init__(self, jobs_xml, job_node, tool, tarball='bonnie++-1.03e.tar.bz2'):
         super(TestControl, self).__init__(jobs_xml, job_node, tool, tarball)
         self.processBin = os.path.join(self.bin_dir, 'bonnie++')
-        self.times = 5
+        self.times = None
                
     def setup(self):
         '''编译源码，设置程序

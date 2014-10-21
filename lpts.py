@@ -283,7 +283,9 @@ class Lpt:
         return "|".join(status_tools)
                 
     def list_jobs(self, jobs_xml):
+        print "-" * 90
         print "%12s%18s%30s%30s" %("JOBID", "JOBNAME", "resultsDB", "STATUS")
+        print "-" * 90
         jobs_object = lptxml.Jobs(jobs_xml)
         #jobs_nodes = lptxml.search_job_nodes('job', xml_file=jobs_xml)
         jobs_nodes = jobs_object.search_job_nodes('job')
@@ -311,6 +313,7 @@ class Lpt:
                             tools_string = self._print_tools(tool_list[n:], tools_nodes, jobs_object)
                             print "%90s" % tools_string
                             break
+                print "-" * 90
             
     def parser_opts(self, argv=sys.argv):
         opts = self.parser(argv)

@@ -1,9 +1,9 @@
 #
    此目录为autotest调用lpt的测试用例，使用方法:
-   1.拷贝LPT到/usr/local/autest/client/lpts,重新命
-名为lpts
+   1.拷贝lpts到/usr/local/autest/client/lpts
    2.mv /usr/local/autotest/client/tests /usr/local/autotest/client/tests_bak
    3. cp -r lpts/api/tests /usr/local/autotest/client
+   4. chown autotest:autotest /usr/local/autotest/client -R
 
 
 

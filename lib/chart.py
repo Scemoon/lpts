@@ -11,7 +11,9 @@ from pychart import bar_plot
 from pychart import category_coord
 import sys
 
-
+       
+       
+     
 class Draw(object):
     def __init__(self, data, file_name, title, author=None, format="ps"):
         #定义图标格式theme.get_options()中定义众多默认值,也可以指定phonto name和 format
@@ -23,7 +25,13 @@ class Draw(object):
         #canvas函数，定义canvas名称和格式， 读取theme中定义的环境变量如title
         self.can = canvas.init(fname=file_name+"."+format, format=format)
         self.data = data
-                       
+          
+    def _interval(self, (min, max)):
+        iter = 6
+        iterval = int(max / iter)
+        return tuple([iterval * i for i in range(6) ]) 
+        
+                   
     def set_X(self, label, **kwargs):
         ''' set X 
         @param label: X label
@@ -62,7 +70,8 @@ class Draw(object):
         
         #return axis.Y(label=label, label_offset=label_offset, format=format,
          #              tic_len=tic_len, offset=offset, tic_interval=tic_len/6)
-        return axis.Y(label=label, format="%.1e", tic_len=6, **kwargs)
+               
+        return axis.Y(label=label, format="%.1e", **kwargs)
 
     def creat_area(self, size, xaxis, yaxis, y_range=(0, None)):
         ar = area.T(size=size, x_coord = category_coord.T(self.data, 0),

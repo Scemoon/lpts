@@ -16,6 +16,7 @@ from PIL import Image
 from multiprocessing import Process
 from signal import SIGTERM 
 from lpt.lib import sysinfo
+from lpt.lib import lmbench
 
 
 lptdir = os.getenv("LPTROOT")
@@ -64,11 +65,13 @@ INDEX_KEYS = {'unixbench':['Dhrystone2-using-register-variables',
                 "getc","getc_cpu","get_block","get_block_cpu","seeks","seeks_cpu","seq_create",
                 "seq_create_cpu","seq_stat","seq_stat_cpu","seq_del","seq_del_cpu","ran_create","ran_create_cpu",
                 "ran_stat","ran_stat_cpu","ran_del","ran_del_cpu" ],
-        'dbench_fio':['Throughtput', 'max_latency']
-           
+        'dbench_fio':['Throughtput', 'max_latency'],
+        'lmbench':lmbench.get_index_list()
+        
         }
 
-parameters_keys = ["parameters", "parallels", "times"]
+#parameters_keys = ["parameters", "parallels", "times"]
+parameters_keys = ["parameters"]
 
 class CFork:
     ''' create fork'''
@@ -215,6 +218,7 @@ class Report(lptxml.XmlResults):
             raise ValueError, "平均值为空"
         return parallel_result_list
     
+    
     def get_index_data(self, index):
         '''@param:
             @return: list: '''
@@ -231,6 +235,8 @@ class Report(lptxml.XmlResults):
             index_result_list.append(value)
         return index_result_list
 
+    def get_lmbench_attrib(self, node, key):
+        return self.get_result_attrib(node, key)
 
 class TxtReport(Report):
     '''  create txt report'''      
@@ -295,9 +301,9 @@ class TxtReport(Report):
             self._write_text(text, width)
             #self.fp.write("\n")
             
-    def set_result_title(self):
+    def set_result_title(self, section="三"):
         
-        self._set_section_title("三", "测试数据")
+        self._set_section_title(section, "测试数据")
         
     def write_element_text(self, node, width):
         '''定义写element内容的方法,写入所有node节点中所有element的text
@@ -332,10 +338,9 @@ class TxtReport(Report):
         self.write_element_tag(width)
         for node in nodes:
             self.write_element_text(node, width)
-        
         self.fp.write("\n")
         self.fp.write("  ")
-        self.write("-", width=width*(len(node)+1), fillchar='-' )
+        self.write("-", width=width*(len(self.tool_indexs)+1), fillchar='-' )
         
     def write_horizontal_results(self):
       
@@ -356,7 +361,135 @@ class TxtReport(Report):
                 
             self.write_nodes(result_parallel_nodes, self.width) 
         self.fp.write("\n")  
+      
+    def _write_lmbench(self, keys, nodes):
+        for node in nodes:
+            self.fp.write("%8s" % self.get_times(node))
+            node_results_dic = self.get_parallel_hor_data(node)
+            for key in keys:
+                self.write(node_results_dic.get(key), width=8, position="right")
+            self.fp.write("\n")
             
+    def write_lmbench(self):
+        self.set_result_title(section="二")
+        parallels = self.get_parallels()
+        parallel = parallels[0]
+        lptlog.debug("lmbench 并行数为: %s " % parallel)
+        
+        result_parallel_nodes = self.get_parallel_nodes(parallel)
+        if result_parallel_nodes is None:
+            lptlog.warning("%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel))
+            raise TestException, "%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel)
+        
+        self.fp.write("\n")
+        self.fp.write("\n")
+        self.fp.write('''Basic system parameters
+----------------------------------------
+     Mhz     tlb   cache     mem    scal
+           pages    line     par    load
+                   bytes  
+----------------------------------------''')
+        self.fp.write("\n")
+        self.write(self.get_lmbench_attrib(result_parallel_nodes[0], "Mhz"), width=8, position="right")
+        self.write(self.get_lmbench_attrib(result_parallel_nodes[0], "tlb"), width=8, position="right")
+        self.write(self.get_lmbench_attrib(result_parallel_nodes[0], "line_size"), width=8, position="right")
+        self.write(self.get_lmbench_attrib(result_parallel_nodes[0], "mem_load_par"), width=8, position="right")
+        self.write(self.get_lmbench_attrib(result_parallel_nodes[0], "scal_load"), width=8, position="right")
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Processor, Processes - times in microseconds - smaller is better
+----------------------------------------------------------------------------------------
+   Times    null    null    open            slct     sig     sig    fork    exec      sh
+            call     I/O    clos    stat     TCP    inst    hndl    proc    proc    proc
+--------- ------------- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --------------''') 
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_process, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Basic integer operations - times in nanoseconds - smaller is better
+-------------------------------------------------------------------
+   Times   intgr   intgr   intgr   intgr   intgr
+             bit    add      mul     div     mod
+--------- ------------- ------ ------ ------ ----''')
+        
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_int, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Basic uint64 operations - times in nanoseconds - smaller is better
+------------------------------------------------------------------
+   Times   int64   int64   int64   int64   int64
+             bit     add     mul     div     mod
+--------- ------------- ------ ------ ------ ---''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_int64, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Basic float operations - times in nanoseconds - smaller is better
+-----------------------------------------------------------------
+   Times   float   float   float   float
+             add     mul     div    bogo
+--------- ------------- ------ ------ ---''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_float, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Basic double operations - times in nanoseconds - smaller is better
+------------------------------------------------------------------
+   Times  double  double  double  double
+             add     mul     div    bogo
+--------- ------------- ------  -------- ''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_double, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Context switching - times in microseconds - smaller is better
+------------------------------------------------------------------
+   Times   2p/0K  2p/16K  2p/64K  8p/16K  8p/64K 16p/16K 16p/64K
+           ctxsw   ctxsw   ctxsw   ctxsw   ctxsw   ctxsw   ctxsw
+--------- ------------- ------ ------ ------ ------ ------ -------''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_ctx, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''*Local* Communication latencies in microseconds - smaller is better
+-------------------------------------------------------------------------
+   Times   2p/0K    Pipe      AF     UDP    RPC/     TCP    RPC/     TCP
+           ctxsw            UNIX             UDP             TCP    conn
+--------- ------------- ----- ----- ---- ----- ----- ----- ----- --------''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_ipc_local, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''File & VM system latencies in microseconds - smaller is better
+------------------------------------------------------------------------
+   Times      0K File        10K File       Mmap    Prot    Page   100fd
+          Create  Delete  Create  Delete Latency   Fault   Fault   selct
+--------- ------------- ------ ------ ------ ------ ------- ----- ------''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_file_vm, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''*Local* Communication bandwidths in MB/s - bigger is better
+-------------------------------------------------------------------------------
+   Times    Pipe      AF     TCP    File    Mmap   Bcopy   Bcopy     Mem     Mem
+                    UNIX          reread  reread  (libc)  (hand)    read   write
+--------- ------------- ---- ---- ---- ------ ------ ------ ------ ---- -------''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_bw_ipc_local, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        self.fp.write('''Memory latencies in nanoseconds - smaller is better
+    (WARNING - may not be correct, check graphs)
+---------------------------------------------------
+    Times   L1 \$   L2 \$    Main    Rand 
+                              mem     mem
+--   ----   ----    --------    ---------''')
+        self.fp.write("\n")
+        self._write_lmbench(lmbench.lm_mem, result_parallel_nodes)
+        
+        self.fp.write("\n\n")
+        
     def write_vertical_results(self):
         #判断tool result是否存在
         parallels = self.get_parallels()
@@ -410,7 +543,8 @@ class TxtReport(Report):
             self.write("-", width=self.width*(len(times_list))+self.tag_width, fillchar='-' )
             self.fp.write("\n")
             self.fp.write("\n")
-      
+            
+        
     def report(self):
         lptlog.debug("检查是否包含 %s result" % self.tool)
         if not self.check_tool_nodes():
@@ -418,6 +552,10 @@ class TxtReport(Report):
         #nodes = self.get_nodes()
         self.set_title()
         self.set_tool_description()
+        if self.tool == "lmbench":
+            self.write_lmbench()
+            return 0
+      
         self.set_tool_index()
         self.set_result_title()
         lptlog.debug("数据写入方式： %s" % self.writeType)
@@ -426,6 +564,8 @@ class TxtReport(Report):
         elif self.writeType == "vertical":
             self.write_vertical_results()
             
+                
+                
 def txt_report(xml, tools_list, reportfile, width=15):
     ''' create txt report'''
     for tool in tools_list:
@@ -482,21 +622,20 @@ class InfoXlsReport(InfoReport):
             
     def _set_text_format(self, value, row, col):
         u_text = utils.to_unicode(value)
-        #sum of  from col 1 to col 5
+
         colswidth = self.sheet.col(col).width 
-        rowheight = self.sheet.row(row).height
-        if len("    "+u_text) * 367 < colswidth:
+        rowheight = self.sheet.row_default_height
+        if len("    "+u_text) * 297< colswidth:
             pass
         else:
-            rate = len("    "+u_text) * 367 / colswidth + 1
+            rate = len("    "+u_text) * 300 / colswidth + 1
             self.sheet.row(row).height = rowheight * rate
     
     def write_values(self, xml, name, col, row=2):
         class XmlInfo(InfoReport):
             def __init__(self, xml):
                 super(XmlInfo, self).__init__(xml)
-                       
-        
+                         
         osinfo_dict = XmlInfo(xml).get_OSinfo_dict()
           
         self.xls_write.data_title(self.sheet, [name], row, col_start_index=col)
@@ -530,7 +669,7 @@ class XlsReport(Report):
         u_text = utils.to_unicode(text)
         #sum of  from col 1 to col 5
         colswidth = sum([ self.sheet.col(col).width for col in range(colmin, colmax)])
-        rowheight = self.sheet.row(row).height
+        rowheight = self.sheet.row_default_height 
         if len("    "+u_text) * 430 < colswidth:
             pass
         else:
@@ -544,8 +683,8 @@ class XlsReport(Report):
         return row+2
     
      
-    def write_tool_index(self, row, colmin=1, colmax=5):
-        self.xls_write.section_title(self.sheet, "二.  指标", row)
+    def write_tool_index(self, row, colmin=1, colmax=5, section="二"):
+        self.xls_write.section_title(self.sheet, "%s.  指标" % section, row)
         row = row + 1
         for index in self.tool_indexs:
             self.xls_write.description(self.sheet, "    %s: %s" % (index, get_config_value(index, self.tool)), row, colmin=colmin, colmax=colmax)
@@ -553,8 +692,8 @@ class XlsReport(Report):
             row = row + 1
         return row
     
-    def write_parameters(self, row, colmin, colwidth):
-        self.xls_write.section_title(self.sheet, "三.  参数", row)
+    def write_parameters(self, row, colmin, colwidth, section="三"):
+        self.xls_write.section_title(self.sheet, "%s.  参数" % section, row)
         row = row + 1
         self.xls_write.write_cell(self.sheet, "Main Parameters", row, col=colmin)
         row += 1
@@ -564,8 +703,8 @@ class XlsReport(Report):
             row = row + 1
         return row
         
-    def write_result_title(self, row):
-        self.xls_write.section_title(self.sheet, "四.  结果", row)
+    def write_result_title(self, row, section="四"):
+        self.xls_write.section_title(self.sheet, "%s.  结果"  % section, row)
         return row + 1
 
         
@@ -630,7 +769,7 @@ class XlsReport(Report):
         parallel_results_list = [self.get_parallels(), self.get_index_data(index)]
         graphic = chart.Draw(map(list, zip(*parallel_results_list)), graphic_name, title)
         xais = graphic.set_X("parallels")
-        yais = graphic.set_Y("Results", tic_interval=Y_max/6)
+        yais = graphic.set_Y("Results", tic_interval=Y_max/5)
         ar = graphic.creat_area((300, 100), xais, yais)
         plot = graphic.creat_bar_plot(index)
         graphic.area_add_plot(ar, [plot])
@@ -670,17 +809,6 @@ class XlsReport(Report):
     
     def hor_report(self, row):
         '''横向写入方法'''
-        
-        #lptlog.debug("写入标题")
-        #colwidth = len(self.get_hor_data_title())
-        #row = self.write_title(col_width=colwidth+1)
-        #row = row + 1
-        #row = self.write_tool_descriptions(row, colmin=1, colmax=1+colwidth)
-        #row = row + 1
-        #row = self.write_tool_index(row, colmin=1, colmax=1+colwidth)
-        #row = row + 1
-        #row = self.write_result_title(row)
-   
         parallels = self.get_parallels()
         lptlog.debug("获取 %s 测试并行数: %s" % (self.tool, utils.list_to_str(parallels)))
         for parallel in parallels:
@@ -698,17 +826,6 @@ class XlsReport(Report):
         return row
     
     def ver_report(self, row):
-        #lptlog.debug("写入标题")
-        #colwidth = len(self.get_ver_data_title(self.get_nodes())) / len(self.get_parallels())
-        #row = self.write_title(col_width=colwidth+1)
-        #row = row + 1
-        #row = self.write_tool_descriptions(row, colmin=1, colmax=1+colwidth)
-        #row = row + 1
-        #row = self.write_tool_index(row, colmin=1, colmax=1+colwidth)
-        #row = row + 1
-        #row = self.write_result_title(row)
-        #空一行
-      
         parallels = self.get_parallels()
         lptlog.debug("获取 %s 测试并行数: %s" % (self.tool, utils.list_to_str(parallels)))
         for parallel in parallels:
@@ -718,22 +835,58 @@ class XlsReport(Report):
             row = self.write_ver_data(row, parallel, parallel_nodes)
             row = row + 1
             
-              #加大第一列宽度
-        #self.sheet.col(1).width = 9000
         return row
     
-              
+    def _get_lmbench_result_nodes(self):
+        parallels = self.get_parallels()
+        parallel = parallels[0]
+        lptlog.debug("lmbench 并行数为: %s " % parallel)
+        nodes = self.get_parallel_nodes(parallel)
+        return nodes
+                
+    def lmbench_report(self):
+        colwidth=5
+        row = self.write_title(col_width=colwidth+1)
+        row_des = row + 1
+        row = self.write_tool_descriptions(row_des, colmin=1, colmax=colwidth+1)
+        row = row +1
+        row = self.write_parameters(row, 1, colwidth, section="二")
+        row = row + 1
+        row = self.write_result_title(row, section="三")
+        #row = row + 1
+        for lm_des in lmbench.des[1:]:
+            #get group data ,type list
+                #获取tiltle_keys切片，并获取该切片位置的 group tilte,然后转换成list
+            data_title_list = list(lmbench.title_keys[lmbench.des.index(lm_des)])
+            title_len = len(data_title_list)
+            self.xls_write.lmbench_des(self.sheet, lm_des, row, 1, 1+title_len)
+            row +=1
+            self.xls_write.data_title(self.sheet, ["TIMES"], row)
+            self.xls_write.data_title(self.sheet, data_title_list, row, col_start_index=2)
+            row += 1
+            nodes = self._get_lmbench_result_nodes()
+            for node in nodes:
+                self.xls_write.data_seq(self.sheet, self.get_times(node), row)
+                node_dict = self.get_parallel_hor_data(node)
+                keys = list(lmbench.lm_keys[lmbench.des.index(lm_des)])
+                self.xls_write.data(self.sheet, map(float,[node_dict.get(key) for key in keys] ), row, col_start_index=2)
+                row = row + 1
+            row += 1
+            #调整格式
+        self.sheet.col(1).width = 4000
+        for col in range(2, 12):
+            self.sheet.col(col).width = 3600
+        self._set_text_format("descriptions", row_des+1, colmin=1, colmax=1+colwidth+1)
+            
     def report(self):
         lptlog.debug("检查是否包含 %s result" % self.tool)
         if not self.check_tool_nodes():
             raise ValueError, " %s 测试数据为空..."
         #nodes = self.get_nodes()
-        if self.chart:
-            lptlog.info("生成图片报告")
-            self.gen_index_graphic()
-        
+        if self.tool == "lmbench":
+            self.lmbench_report()
+            return
         lptlog.info("数据写入方式： %s" % self.writeType)
-        
         lptlog.debug("写入标题")
         colwidth = self._colswidth(self.writeType)
         row = self.write_title(col_width=colwidth+1)
@@ -756,7 +909,9 @@ class XlsReport(Report):
             for col in range(2, colwidth+1+1):
                 self.sheet.col(col).width = 16000/colwidth
             
-        if self.chart:
+        if self.chart and len(self.get_parallels())>1:
+            lptlog.info("生成图片报告")
+            self.gen_index_graphic()
             self.write_indexs_img(row, 1)
       
         #调整格式
@@ -958,7 +1113,7 @@ class CompareToolXls(ToolCompare):
         u_text = utils.to_unicode(text)
         colswidth = sum([ self.sheet.col(col).width for col in range(colmin, colmax)])
         #rowheight = self.sheet.row(row).height
-        rowheight = self.sheet.get_row_default_height() 
+        rowheight = self.sheet.get_row_default_height()
         if len(u_text+"    ") * 430 < colswidth:
             pass
         else:
@@ -972,17 +1127,17 @@ class CompareToolXls(ToolCompare):
         return row+2
     
      
-    def write_tool_index(self, row, colmin, colmax):
+    def write_tool_index(self, row, colmin, colmax, section="二"):
         #colmax = colmin + len(self.tool_indexs)
-        self.xls_write.section_title(self.sheet, "二.  指标", row)
+        self.xls_write.section_title(self.sheet, "%s.  指标" % section, row)
         row = row + 1
         for index in self.tool_indexs:
             self.xls_write.description(self.sheet, "    %s: %s" % (index, get_config_value(index, self.tool)), row, colmin=colmin, colmax=colmax)
             row = row + 1
         return row
     
-    def write_parameters(self, row, colmin, colmax):
-        self.xls_write.section_title(self.sheet, "三.  参数", row)
+    def write_parameters(self, row, colmin, colmax, section="三"):
+        self.xls_write.section_title(self.sheet, "%s.  参数" % section, row)
         row += 1
         for key in parameters_keys:
             self.xls_write.write_cell(self.sheet, key, row, col=colmin)
@@ -994,8 +1149,8 @@ class CompareToolXls(ToolCompare):
             row +=1
         return row 
     
-    def write_result_title(self, row):
-        self.xls_write.section_title(self.sheet, "四.  结果", row)
+    def write_result_title(self, row, section="四"):
+        self.xls_write.section_title(self.sheet, "%s.  结果" % section, row)
         return row + 1
     
     def write_parallel_data_des(self, parallel, row):
@@ -1048,12 +1203,20 @@ class CompareToolXls(ToolCompare):
         index_data_list.insert(0, self.parallels)
     
         return index_data_list
-            
+         
+    def _get_max_value(self, index):
+        Y_max = 0
+        index_data_list =  self._get_all_index_data(index)
+        for index_list in index_data_list:
+            if Y_max < max(index_list):
+                Y_max = max(index_list)
+        return Y_max
+              
     def __gen_index_graphic(self, index,  graphic_name, title):
         graphic = chart.Draw(map(list, zip(*self._get_all_index_data(index))), graphic_name, title)
-    
+        Y_max = self._get_max_value(index)
         xais = graphic.set_X("parallels")
-        yais = graphic.set_Y("Results")
+        yais = graphic.set_Y("Results", tic_interval=Y_max/6)
         ar = graphic.creat_area((300, 100), xais, yais)
         plot_list = []
         for xml_name in self.xmls_keys:
@@ -1174,24 +1337,64 @@ class CompareToolXls(ToolCompare):
                 lptlog.error("NO found %s" % pngfile)
         finally:
             return row + 1
+        
+    def write_lmbench(self):
+        ''' write compare lmbench xls'''
+        colwidth = 5
+        lptlog.debug("lmbench sheet 写入标题" ) 
+        row = self.write_title(col_width=colwidth) + 1
+        row_des = row
+        row = self.write_tool_descriptions(row_des, colmin=1, colmax=1+colwidth) + 1
+        row = self.write_parameters(row, 1, 1+colwidth, section="二")
+        row = self.write_result_title(row, section="三")
+        
+        for lm_des in lmbench.des[1:]:
+            #get group data ,type list
+                #获取tiltle_keys切片，并获取该切片位置的 group tilte,然后转换成list
+            data_title_list = list(lmbench.title_keys[lmbench.des.index(lm_des)])
+            title_len = len(data_title_list)
+            self.xls_write.lmbench_des(self.sheet, lm_des, row, 1, 1+title_len)
+            row +=1
+            self.xls_write.data_title(self.sheet, ["Test"], row)
+            self.xls_write.data_title(self.sheet, data_title_list, row, col_start_index=2)
+            row += 1
             
-    
+            parallel = self.get_parallels()[0]
+            for xml_name in self.xmls_keys:
+                self.xls_write.data_seq(self.sheet, xml_name, row)
+                result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
+                keys = list(lmbench.lm_keys[lmbench.des.index(lm_des)])
+                self.xls_write.data(self.sheet, map(float,[result_dict.get(key) for key in keys] ), row, col_start_index=2)
+                row += 1
+            row = row+1
+            
+            #调整格式
+        self.sheet.col(1).width = 4000
+        for col in range(2, 12):
+            self.sheet.col(col).width = 3600
+        self._set_text_format("descriptions", row_des+1, 1, colwidth+1+1)
+         
 def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="parallel", chart=False):
     ''' tool xls compare report'''
     tool_cmp_object = CompareToolXls(tool, tool_sheet, xls_object, xmls_dict)
-    lptlog.debug("%s sheet 写入标题" % tool)
+    
+    if tool == "lmbench":
+        tool_cmp_object.write_lmbench() 
+        return 
     if writeType=="parallel":
         colwidth = len(tool_cmp_object.tool_indexs)
     elif writeType=="index":
         colwidth = len(tool_cmp_object.parallels)
-    row = tool_cmp_object.write_title(col_width=colwidth) + 1
+        
+    lptlog.debug("%s sheet 写入标题" % tool) 
+    row = tool_cmp_object.write_title(col_width=colwidth) + 1  
     row_des = row
     row = tool_cmp_object.write_tool_descriptions(row_des, colmin=1, colmax=1+colwidth) + 1
+
     row_index_start = row 
     row = tool_cmp_object.write_tool_index(row, colmin=1, colmax=1+colwidth) + 1
     row = tool_cmp_object.write_parameters(row, 1, 1+colwidth)
     row = tool_cmp_object.write_result_title(row)
-    
     #产生graphic
     #tool_cmp_object.gen_graphcis(writeType, graphic_name="lpt")
     if writeType=="parallel":
@@ -1244,7 +1447,7 @@ class Compare(object):
         self.input_name_list = input_name_list
         self.input_tools = input_tools
         
-    def get_cmp_num(self, limit=6):
+    def get_cmp_num(self, limit=8):
         '''限定对比数'''
         num = len(self.results_xml_list)
         if num < 2:

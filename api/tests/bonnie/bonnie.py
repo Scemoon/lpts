@@ -34,7 +34,7 @@ class bonnie(test.test, lpt_test.BaseTest):
         tool = str(self.__class__.__name__)
         lpt_test.BaseTest.__init__(self, tool)
         test.test.__init__(self, job, bindir, outputdir)
-
+        self.times = None
 
     def initialize(self):
         self.job.require_gcc()
@@ -47,12 +47,12 @@ class bonnie(test.test, lpt_test.BaseTest):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-	utils.configure()
+        utils.configure()
         utils.make()
 
 
     def run_once(self):
-	tool_node = self.check_tool_result_node()
+        tool_node = self.check_tool_result_node()
         lptlog.info("----------开始获取测试参数")
 
         cmd = os.path.join(self.srcdir, "bonnie++")
@@ -138,7 +138,7 @@ class bonnie(test.test, lpt_test.BaseTest):
         lptlog.info("小文件数: %s k, 小文件大小: %s, 测试目录: %s" % (small_files_num, small_file_size,  small_files_dirs))
 
         self.times = self.get_config_value(tool_node, "times", 5, valueType=int)
- 	lptlog.info("测试次数: %d " % self.times)
+        lptlog.info("测试次数: %d " % self.times)
         args.append("-x")
         args.append("%d" % self.times)
 
@@ -155,7 +155,7 @@ class bonnie(test.test, lpt_test.BaseTest):
 
 
         #运行测试程序，要求保存结果到tmp目录，result_file命令为iozone_$parallel_type_$iter.out
-
+        self.mainParameters["parameters"] = lutils.list_to_str(["bonnie++"]+args, ops=" ")
             #清除缓冲
         method.clean_buffer()
         lptlog.info("----------运行测试脚本")
@@ -220,7 +220,7 @@ class bonnie(test.test, lpt_test.BaseTest):
                 key_dic[l] = "%d" % v
 
             if not sum_dic:
-	    	sum_dic = key_dic.copy()
+                sum_dic = key_dic.copy()
             else:
                 sum_dic = method.append_sum_dict(sum_dic, key_dic)
             self.result_list.append([attrib_dic, key_dic])

@@ -15,7 +15,7 @@ except KeyError:
 autodir = os.path.abspath(os.environ['AUTODIR'])
 
 lptdir = os.path.join(os.path.dirname(autodir), "lpt")
-lptdir = os.path.join(autodir, "lpt")
+lptdir = os.path.join(autodir, "lpts")
 os.environ['LPTROOT'] = lptdir
 from autotest.client import setup_modules
 setup_modules.setup(base_path=lptdir, root_module_name="lpt")
@@ -42,20 +42,18 @@ class dbench_fio(test.test, lpt_test.BaseTest):
         os.chdir(self.srcdir)
 
         #utils.system('patch -p1 < %s' %
-                    # os.path.join(self.bindir, 'dbench_startup.patch'))
-	utils.system("./autogen.sh")
+        # os.path.join(self.bindir, 'dbench_startup.patch'))
+        utils.system("./autogen.sh")
         utils.configure()
         utils.make()
 
     def initialize(self):
         self.job.require_gcc()
-        #self.results = []
-	self.check_deps()
-	utils.system("ulimit -n 100000", ignore_status=True)
+        self.check_deps()
+        utils.system("ulimit -n 100000", ignore_status=True)
 
     def run_once(self):
-
-	tool_node = self.check_tool_result_node()
+        tool_node = self.check_tool_result_node()
 
         lptlog.info("----------获取测试参数")
 
@@ -94,7 +92,7 @@ class dbench_fio(test.test, lpt_test.BaseTest):
         lptlog.info("预热时长: %s s" % warnuptime)
         args.append("--warmup=%d" % warnuptime)
 
-
+        self.mainParameters["parameters"] = " ".join(["dbench"]+args)
         lptlog.info("----------运行测试脚本")
         for parallel in self.parallels:
             lptlog.info("运行 %s 并行" % parallel)
@@ -104,7 +102,7 @@ class dbench_fio(test.test, lpt_test.BaseTest):
                 parallel_args.append("--clients-per-process=%d" % parallel)
                 parallel_args.append("1")
             else:
- 		parallel_args.append(str(parallel))
+                parallel_args.append(str(parallel))
 
             for iter in range(self.times):
                 lptlog.info("第 %s 次测试" % (iter+1))
