@@ -624,12 +624,14 @@ class InfoXlsReport(InfoReport):
         u_text = utils.to_unicode(value)
 
         colswidth = self.sheet.col(col).width 
-        rowheight = self.sheet.row_default_height
+        rowdefaultheight = self.sheet.row_default_height
+        rowheight = self.sheet.row(row).height
         if len("    "+u_text) * 297< colswidth:
             pass
         else:
             rate = len("    "+u_text) * 300 / colswidth + 1
-            self.sheet.row(row).height = rowheight * rate
+            if rowheight < rowdefaultheight * rate:
+                self.sheet.row(row).height = rowdefaultheight * rate
     
     def write_values(self, xml, name, col, row=2):
         class XmlInfo(InfoReport):

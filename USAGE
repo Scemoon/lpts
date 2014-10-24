@@ -17,13 +17,15 @@
              PARALLEL=2,4,8  	        //将测试2、4、8并行
              TIMES = 5                  //测试次数5次
      3.创建测试任务, 如:
-       ./lpts.py --create -t stream -f jobs.xml -p parameters/default.conf
+       ./lpts.py --create -t stream -f jobs.xml -p parameters/default.conf -n testname
        参数说明：
         -f 指定jobs.xml,默认为db/jobs.xml
         -p 执行配置文件，默认为parameters/default.conf
 	-t 执行单个测试工具
         -g 执行多个测试工具，用“，”隔开，但工具之间不能有空格, 目前支持的工具有:
 	   stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench(fio)
+	-n 指定job名称
+
       4.查看job
         ./lpts.py -l 
 	示例：
@@ -44,7 +46,7 @@
        -t 执行单个测试工具   
        -g 执行多个测试工具，用“，”隔开，但工具之间不能有空格, 目前支持的工具有:
           stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench(fio)
-  --clean 表示测试完毕后，清楚测试环境
+  --clean 表示测试完毕后，清除测试环境
 
   @@ 生成测试报告
      ./lpts.py --report -F xls -R ./db/result*.xml -r reportname -d resultDir --chart
