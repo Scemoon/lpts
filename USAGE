@@ -42,7 +42,7 @@
       ./lpts.py --run -t stream -f db/jobs.xml -i 140212142334 --clean 
       参数说明：
        -f 指定jobs.xml,,不指定时，程序将自动指定为db/jobs.xml
-       -i 指定jobs.xml中job id, 默认jobs.xml中最新的id
+       -i 指定jobs.xml中job id, 默认jobs.xml中最新的job id
        -t 执行单个测试工具   
        -g 执行多个测试工具，用“，”隔开，但工具之间不能有空格, 目前支持的工具有:
           stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench_fio

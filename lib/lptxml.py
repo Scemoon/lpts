@@ -391,7 +391,6 @@ class XmlResults(base_xml.RWXml):
     '''
     def __init__(self, xml_file):
         super(XmlResults, self).__init__(xml_file)
-        self.root_attrib = sysinfo.OSInfo.keys
       
         #初始化
         if not os.path.exists(self.xml_file):
@@ -400,6 +399,7 @@ class XmlResults(base_xml.RWXml):
                 self.create_tree()
                 
              #创建主节点
+            self.root_attrib = sysinfo.OSInfo.keys
             self.root = self.create_root_node('results', self.root_attrib)
     
         else:
@@ -412,7 +412,7 @@ class XmlResults(base_xml.RWXml):
        # return root_dic
     
   
-    def save_result_node(self, result_node_tag, result_node_attrib, result_list, **kargs):
+    def save_result_node(self, result_node_tag, result_node_attrib, result_list, **kwargs):
         '''
         result_list = [ [{}, {}], [{},{}] ]
         第一层测试组数（几次）

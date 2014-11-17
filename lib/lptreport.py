@@ -156,7 +156,7 @@ class Report(lptxml.XmlResults):
         return self.search_tool_result_nodes(self.tool)
     
     def get_parallel_nodes(self, parallel):
-        return search_tool_result_parallel_nodes(self.tool, parallel)
+        return self.search_tool_result_parallel_nodes(self.tool, parallel)
     
     def get_parallels(self):
         '''get parallels 
