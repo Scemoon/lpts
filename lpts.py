@@ -49,7 +49,7 @@ TMP_DIR = os.path.join(LPTROOT, 'tmp')
 
 for dir in (DB_DIR, RESULTS_DIR, BIN_DIR, TMP_DIR):
     if not os.path.isdir(dir):
-        os.makedirs(dir, mode=644)
+        os.makedirs(dir, mode=0777)
      
 JOBS_XML = os.path.join(DB_DIR, 'jobs.xml')
 VERSION_FILE = os.path.join(LPTROOT, 'release')
@@ -62,7 +62,7 @@ START_MSG = '''
   #                                                                #
   # @author:     Scemoon                                           #
   # @contact:    mengsan8325150@gmail.com                          #
-  # @version:    %s                                          #
+  # @version:    %s                                            #
   #                                                                #
    ################################################################
     ''' % utils.get_version(VERSION_FILE)
@@ -379,7 +379,7 @@ class Lpt:
                         
                 if not os.path.isdir(opts.reportdir):
                     lptlog.warning("%s 不是有效的目录" % opts.reportdir)
-                    os.makedirs(opts.reportdir, mode=777)
+                    os.makedirs(opts.reportdir, mode=0777)
                 
                 Testreport.report(os.path.realpath(opts.resultdb), opts.reportdir, tools_list=self.tools_list,
                                    reportname=opts.reportname, format=opts.format, chart=opts.genchart)

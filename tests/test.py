@@ -39,10 +39,10 @@ JOBS_XML = os.path.join(DB_DIR, 'jobs.xml')
 #判断文件或者目录是否存在
 for dir in (SRC_DIR, BIN_DIR, TOOLS_DIR, RESULTS_DIR, DB_DIR):
     if not os.path.exists(dir):
-        os.mkdir(dir)
+        os.makedirs(dir, mode=0777)
     elif not os.path.isdir(dir):
         os.remove(dir) 
-        os.mkdir(dir) 
+        os.makedirs(dir, mode=0777) 
     else:
         pass
     

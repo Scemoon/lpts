@@ -19,11 +19,11 @@
      3.创建测试任务, 如:
        ./lpts.py --create -t stream -f jobs.xml -p parameters/default.conf -n testname
        参数说明：
-        -f 指定jobs.xml,默认为db/jobs.xml
-        -p 执行配置文件，默认为parameters/default.conf
+        -f 指定jobs.xml,不指定时，程序将自动指定为db/jobs.xml
+        -p 测试参数配置文件，不指定时，程序将自动指定为parameters/default.conf
 	-t 执行单个测试工具
         -g 执行多个测试工具，用“，”隔开，但工具之间不能有空格, 目前支持的工具有:
-	   stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench(fio)
+	   stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench_fio
 	-n 指定job名称
 
       4.查看job
@@ -41,24 +41,24 @@
   @@ 运行测试任务
       ./lpts.py --run -t stream -f db/jobs.xml -i 140212142334 --clean 
       参数说明：
-       -f 指定jobs.xml,默认为db/jobs.xml
-       -i 指定jobs.xml中job id, 默认为最后一个job id
+       -f 指定jobs.xml,,不指定时，程序将自动指定为db/jobs.xml
+       -i 指定jobs.xml中job id, 默认jobs.xml中最新的id
        -t 执行单个测试工具   
        -g 执行多个测试工具，用“，”隔开，但工具之间不能有空格, 目前支持的工具有:
-          stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench(fio)
+          stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench_fio
   --clean 表示测试完毕后，清除测试环境
 
   @@ 生成测试报告
      ./lpts.py --report -F xls -R ./db/result*.xml -r reportname -d resultDir --chart
      参数说明：
-       -F 指定报告格式，默认为xls,目前支持txt和xls
+       -F 指定报告格式，目前支持txt和xls, 默认为xls,
        -R 指定xml测试数据
        -r 指定测试报告名称,默认将自动生成
        -d 指定报告存放目录，默认为results目录
   --chart 生成chart
        -t 执行单个测试工具
        -g 执行多个测试工具，用“，”隔开，但工具之间不能有空格, 目前支持的工具有:
-          stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench(fio)
+          stream,unixbench,x11perf,glxgears,pingpong,iozone,bonnie,dbench_fio
    @@ 生成对比测试报告
      ./lpts.py --compare -g stream,pingpong -X ./db/result1.xml,./db/result2.xml,./db/result3.xml 
 	       -r compare_result -N result1,result2,result3
