@@ -48,20 +48,21 @@ class TestControl(BaseTest):
         
         self.times = self.get_config_value(tool_node, "times", 5, valueType=int)
         lptlog.info("测试次数: %d" % self.times )
-        if testmode == 'custom':
-            cmd = self.processBin2
+        #if testmode == 'custom':
+        #    cmd = self.processBin2
                                 
-        else:
-            cmd = self.processBin
-            self.parallels = [1]
+       # else:
+        #    cmd = self.processBin
+         #   self.parallels = [1]
             
         self.mainParameters["parameters"] = "stream_mu"
         lptlog.info("----------运行测试脚本")      
         #执行测试程序
         for parallel in self.parallels:
             if parallel == 1:
-                pass
+                cmd = self.processBin
             else:
+                cmd = self.processBin2
                 os.environ['OMP_NUM_THREADS'] = str(parallel)
             for iter in range(self.times):
                 lptlog.info('并行数 %d, 第 %d 测试：PASS' % (parallel, iter+1))

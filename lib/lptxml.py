@@ -11,7 +11,6 @@ from lpt.lib import lptlog
 from lpt.lib.error import *
 from lpt.lib.share import utils
 import datetime
-from lpt.lib import sysinfo
 from lpt.lib import lmbench
 
 LPTROOT = os.getenv('LPTROOT')
@@ -399,6 +398,7 @@ class XmlResults(base_xml.RWXml):
                 self.create_tree()
                 
              #创建主节点
+            from lpt.lib import sysinfo
             self.root_attrib = sysinfo.OSInfo.keys
             self.root = self.create_root_node('results', self.root_attrib)
     
