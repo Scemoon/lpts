@@ -12,7 +12,6 @@ import string
 from lpt.lib import readconfig
 from lpt.lib import chart
 from pychart import tick_mark
-from PIL import Image
 from multiprocessing import Process
 from signal import SIGTERM 
 from lpt.lib import sysinfo
@@ -913,6 +912,7 @@ class XlsReport(Report):
             
         if self.chart and len(self.get_parallels())>1:
             lptlog.info("生成图片报告")
+            from PIL import Image
             self.gen_index_graphic()
             self.write_indexs_img(row, 1)
       
@@ -1411,6 +1411,7 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
                 for col in range(2, colwidth+1):
                     tool_cmp_object._set_col_width(col, 16000/colwidth)
             if chart:
+                from PIL import Image
                 row = tool_cmp_object.write_par_img(parallel, "cmp", row ,2)
         
     elif writeType=="index":
@@ -1428,6 +1429,7 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
                 tool_cmp_object._set_col_width(2, 16000)
                 
             if chart:
+                from PIL import Image
                 row = tool_cmp_object.write_index_img(index, "cmp", row, 2)
             
     #调整表格宽度
