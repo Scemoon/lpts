@@ -103,7 +103,7 @@ class TestControl(BaseTest):
         result_lines = utils.read_all_lines(file)
       #  flag_dic = {}
         for parallel in self.parallels:
-            re_match = "\d+ CPU\s? in system; running %d parallel cop\S+ of tests" % parallel
+            re_match = "\d+ CPU\S? in system; running %d parallel cop\S+ of tests" % parallel
          
             parallel_result_dic = result_dic.copy()
             for line in result_lines:
