@@ -17,7 +17,7 @@
              PARALLEL=2,4,8  	        //将测试2、4、8并行
              TIMES = 5                  //测试次数5次
      3.创建测试任务, 如:
-       ./lpts.py --create -t stream -f jobs.xml -p parameters/default.conf -n testname
+       ./lpts.py --create -t stream -f  jobs.xml -p parameters/default.conf -n testname
        参数说明：
         -f 指定jobs.xml,不指定时，程序将自动指定为db/jobs.xml
         -p 测试参数配置文件，不指定时，程序将自动指定为parameters/default.conf
@@ -39,7 +39,7 @@
 ------------------------------------------------------------------------------------------
 
   @@ 运行测试任务
-      ./lpts.py --run -t stream -f db/jobs.xml -i 140212142334 --clean 
+      ./lpts.py --run -t stream -f jobs.xml -i 140212142334 --clean 
       参数说明：
        -f 指定jobs.xml,,不指定时，程序将自动指定为db/jobs.xml
        -i 指定jobs.xml中job id, 默认jobs.xml中最新的job id

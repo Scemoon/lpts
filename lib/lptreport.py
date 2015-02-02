@@ -16,6 +16,10 @@ from multiprocessing import Process
 from signal import SIGTERM 
 from lpt.lib import sysinfo
 from lpt.lib import lmbench
+try:
+    from PIL import Image
+except  Exception:
+    lptlog.warning("缺少PIL模块，可能导致生成图片Error!")
 
 
 lptdir = os.getenv("LPTROOT")
@@ -911,7 +915,6 @@ class XlsReport(Report):
                 self.sheet.col(col).width = 16000/colwidth
             
         if self.chart and len(self.get_parallels())>1:
-            from PIL import Image
             lptlog.info("生成图片报告")
             self.gen_index_graphic()
             self.write_indexs_img(row, 1)
@@ -1411,7 +1414,6 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
                 for col in range(2, colwidth+1):
                     tool_cmp_object._set_col_width(col, 16000/colwidth)
             if chart:
-                from PIL import Image
                 row = tool_cmp_object.write_par_img(parallel, "cmp", row ,2)
         
     elif writeType=="index":
@@ -1429,7 +1431,6 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
                 tool_cmp_object._set_col_width(2, 16000)
                 
             if chart:
-                from PIL import Image
                 row = tool_cmp_object.write_index_img(index, "cmp", row, 2)
             
     #调整表格宽度

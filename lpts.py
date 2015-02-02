@@ -403,7 +403,8 @@ class Lpt:
                     if not os.path.isfile(self.jobs_xml):
                         #lptlog.warning("缺失jobs文件，请核对jobs文件或者重新创建job")
                         #raise NameError("")
-                        raise ValueError, "缺失jobs文件，请核对jobs文件或者重新创建job"
+                        #raise ValueError, "缺失jobs文件，请核对jobs文件或者重新创建job"
+                        pass
                     else:
                         self.list_jobs(self.jobs_xml)
                 #else:
@@ -420,7 +421,7 @@ class Lpt:
             sys.exit()
         except Exception, e:
             lptlog.exception('')
-            lptlog.debug(e)
+            #lptlog.debug(e)
 
 def main(argv=sys.argv):
    lpt= Lpt()

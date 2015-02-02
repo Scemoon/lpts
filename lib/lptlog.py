@@ -93,7 +93,7 @@ class LogRecord:
     '''
      
     
-    logname = 'LPT'
+    logname = 'lpts'
     fmt = 'simple'
     level = logging.INFO
     file_level = logging.DEBUG

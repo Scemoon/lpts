@@ -72,3 +72,9 @@ parallel，个别测试工具的图例的X轴为测试指标
  4). 修复 执行scripts/clean.sh，会删除lpts根目录的bug
  5). 修复xls 对比report, OSinfo sheet,多组格式紊乱问题
  6). 修复图标Y轴模糊的问题
+
+ @2015/02/02
+ 1)修复单核cpu，unixbench运行Error的bug
+ 2)更新部分描述性语句错误
+ 3)发部2015春节前最后一个版本
+ 
