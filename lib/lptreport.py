@@ -1192,7 +1192,8 @@ class CompareToolXls(ToolCompare):
     def write_index_data(self, index, row, col=1):
         for xml_name in self.xmls_keys:
             self.xls_write.data_seq(self.sheet, xml_name, row)
-            self.xls_write.data(self.sheet, map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values()), row, col_start_index=col+1)
+            #self.xls_write.data(self.sheet, map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values()), row, col_start_index=col+1)
+            self.xls_write.data(self.sheet, map(float, [self.get_index_result(index, self.xmls_dict[xml_name]).get(parallel) for parallel in self.parallels]), row, col_start_index=col+1)
             row = row+1
             
         return row+1
@@ -1203,7 +1204,8 @@ class CompareToolXls(ToolCompare):
         @return: list, ie:[ (), ()], 其中一个list为parallel元组'''
         index_data_list = []
         for xml_name in self.xmls_keys:
-            index_data = map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values())
+            #index_data = map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values())
+            index_data = map(float, [self.get_index_result(index, self.xmls_dict[xml_name]).get(parallel) for parallel in self.parallels ])
             index_data_list.append(index_data)
         index_data_list.insert(0, self.parallels)
     
