@@ -10,6 +10,7 @@ def run(tool, jobs_xml, job_node, clean=False):
     '''定义测试流程
     '''
     module = 'lpt.tests.%s' % tool
+    lptlog.info(module)
     mo = importlib.import_module(module)
     test = mo.TestControl(jobs_xml, job_node, tool)
     

@@ -14,7 +14,7 @@
 import types
 class IntervalTypeClass:
     def typeCheck(self, val):
-        if type(val) in (types.IntType, types.LongType, types.FloatType,
+        if type(val) in (int, int, float,
                          types.FunctionType):
             return None
         return "Expecting a number or a function, but received '%s'", val

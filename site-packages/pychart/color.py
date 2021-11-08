@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,13 +12,13 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import chart_object
-import object_set
+from . import chart_object
+from . import object_set
 import types
-import theme
-import pychart_util
-import color_doc
-from pychart_types import *
+from . import theme
+from . import pychart_util
+from . import color_doc
+from .pychart_types import *
 
 blackify_colors = 1
 

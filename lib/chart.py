@@ -26,7 +26,8 @@ class Draw(object):
         self.can = canvas.init(fname=file_name+"."+format, format=format)
         self.data = data
           
-    def _interval(self, (min, max)):
+    def _interval(self, xxx_todo_changeme):
+        (min, max) = xxx_todo_changeme
         iter = 6
         iterval = int(max / iter)
         return tuple([iterval * i for i in range(6) ]) 

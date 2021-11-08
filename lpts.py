@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
 '''
@@ -49,7 +49,7 @@ TMP_DIR = os.path.join(LPTROOT, 'tmp')
 
 for dir in (DB_DIR, RESULTS_DIR, BIN_DIR, TMP_DIR):
     if not os.path.isdir(dir):
-        os.makedirs(dir, mode=0777)
+        os.makedirs(dir, mode=0o777)
      
 JOBS_XML = os.path.join(DB_DIR, 'jobs.xml')
 VERSION_FILE = os.path.join(LPTROOT, 'release')
@@ -271,7 +271,7 @@ class Lpt:
        
     
     def check_root(self):
-        if os.getuid() <>0:
+        if os.getuid() !=0:
             lptlog.warning("请使用root用户执行测试用例")
             sys.exit()
             #raise UnRootError("请使用root用户执行测试用例")
@@ -283,9 +283,9 @@ class Lpt:
         return "|".join(status_tools)
                 
     def list_jobs(self, jobs_xml):
-        print "-" * 90
-        print "%12s%18s%30s%30s" %("JOBID", "JOBNAME", "resultsDB", "STATUS")
-        print "-" * 90
+        print("-" * 90)
+        print("%12s%18s%30s%30s" %("JOBID", "JOBNAME", "resultsDB", "STATUS"))
+        print("-" * 90)
         jobs_object = lptxml.Jobs(jobs_xml)
         #jobs_nodes = lptxml.search_job_nodes('job', xml_file=jobs_xml)
         jobs_nodes = jobs_object.search_job_nodes('job')
@@ -295,25 +295,25 @@ class Lpt:
                 resultsdb = jobs_object.get_job_text(job_node, "resultsDB")
                 #tool_list = map(lambda x:x.get('id'), lptxml.get_tools_nodes(job_node))
                 tools_nodes = jobs_object.get_tools_nodes(job_node)
-                tool_list = map(lambda x:x.get('id'), tools_nodes)
+                tool_list = [x.get('id') for x in tools_nodes]
                 if len(tool_list) < 3:
                     tools_string = self._print_tools(tool_list, tools_nodes, jobs_object)
-                    print "%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tools_string) 
+                    print("%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tools_string)) 
                 else:
                     tools_string = self._print_tools(tool_list[0:2], tools_nodes, jobs_object)
-                    print "%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tools_string) 
+                    print("%12s%18s%30s%30s" %(job_node.get('id'), job_node.get('name'), resultsdb, tools_string)) 
                     n = 2
                     while True:
                         if len(tool_list[n:]) > 2:
                             tools_string = self._print_tools(tool_list[n:n+2], tools_nodes, jobs_object)
-                            print "%90s" % tools_string
+                            print("%90s" % tools_string)
                             n = n + 2
                             continue
                         else:
                             tools_string = self._print_tools(tool_list[n:], tools_nodes, jobs_object)
-                            print "%90s" % tools_string
+                            print("%90s" % tools_string)
                             break
-                print "-" * 90
+                print("-" * 90)
             
     def parser_opts(self, argv=sys.argv):
         opts = self.parser(argv)
@@ -326,11 +326,11 @@ class Lpt:
         if opts.loglevel:
             lptlog.update_logger(level=opts.loglevel)
         
-	if opts.parameter:
-	    if os.path.isfile(opts.parameter):
-	        parameterConfig = opts.parameter
-	else:
-	    parameterConfig = defaultParameter
+        if opts.parameter:
+            if os.path.isfile(opts.parameter):
+                parameterConfig = opts.parameter
+        else:
+            parameterConfig = defaultParameter
 
         TOOLS_LIST = readconfig.para_conf(config=parameterConfig).get_sections()
        #获取工具列表    
@@ -344,7 +344,7 @@ class Lpt:
            
         if self.tools_list:
             
-            self.tools_list = {}.fromkeys(self.tools_list).keys()
+            self.tools_list = list({}.fromkeys(self.tools_list).keys())
             #lptlog.info("工具集合: %s" % ",".join(self.tools_list ))
              
         #jobs_xml
@@ -363,7 +363,7 @@ class Lpt:
                 lptlog.info(START_MSG)
                 if not os.path.abspath(self.jobs_xml):
                     #lptlog.warning("缺失jobs文件，请核对jobs文件或者重新创建job")
-                    raise optparse.OptionValueError, "缺失jobs文件，请核对jobs文件或者重新创建job"
+                    raise optparse.OptionValueError("缺失jobs文件，请核对jobs文件或者重新创建job")
                     
                 else:
                     Jobrun.run(job_id=opts.job_id, tools_list=self.tools_list, 
@@ -375,11 +375,11 @@ class Lpt:
 
                 if not  opts.resultdb  or not os.path.abspath(opts.resultdb):
                     #lptlog.warning("请指定result databases(xml)")
-                    raise optparse.OptionValueError, "请指定result databases(xml)"
+                    raise optparse.OptionValueError("请指定result databases(xml)")
                         
                 if not os.path.isdir(opts.reportdir):
                     lptlog.warning("%s 不是有效的目录" % opts.reportdir)
-                    os.makedirs(opts.reportdir, mode=0777)
+                    os.makedirs(opts.reportdir, mode=0o777)
                 
                 Testreport.report(os.path.realpath(opts.resultdb), opts.reportdir, tools_list=self.tools_list,
                                    reportname=opts.reportname, format=opts.format, chart=opts.genchart)
@@ -412,14 +412,14 @@ class Lpt:
         except KeyboardInterrupt:
             lptlog.warning("按下CTRL+C,将停止测试程序")
             sys.exit()
-        except optparse.OptionValueError, e:
+        except optparse.OptionValueError as e:
             lptlog.error("Bad option or value: %s" % e)
-        except MissXML, e:
+        except MissXML as e:
             lptlog.error(e)
         except TestOK:
             lptlog.info("ALL Test OK")
             sys.exit()
-        except Exception, e:
+        except Exception as e:
             lptlog.exception('')
             #lptlog.debug(e)
 

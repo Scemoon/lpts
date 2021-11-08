@@ -12,7 +12,7 @@ except ImportError:
     lptroot = os.path.split(current_dir)[0]
     if not os.getenv('LPTROOT'):
         os.environ['LPTROOT'] = lptroot  
-    import init_env
+    from . import init_env
     init_env.setup(lptroot)
     
 from lpt.lib.share import utils
@@ -34,13 +34,13 @@ RESULT_DB = None
 
 
 def usage():
-    print '''
+    print('''
     Usage: report.py [options] args
     options: -h --help, 帮助信息
              -t --test, 指定测试工具
              -f --file, 指定result database (xml)
              -r --report, 指定需要保存的报告文件,
-        '''
+        ''')
     sys.exit()
 
 
@@ -99,7 +99,7 @@ def report(result_xml, resultDir, tools_list=None,
         tools_list = lptxml.get_result_tools(result_xml)
         if tools_list is None :
             lptlog.warning("%s 中无测试数据" % result_xml)
-            raise ValueError, "result.xml: %s" % result_xml
+            raise ValueError("result.xml: %s" % result_xml)
         
     lptlog.info("测试报告工具集:  %s" % utils.list_to_str(tools_list))
     lptlog.info("测试报告格式: %s" % format)

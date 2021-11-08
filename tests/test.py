@@ -10,7 +10,7 @@ from lpt.lib import lptxml
 from lpt.lib import lptlog
 from lpt.lib import lptreport
 from lpt.lib.error import *
-from share import method
+from .share import method
 
 
 #获取LPT ROOT PATH
@@ -39,10 +39,10 @@ JOBS_XML = os.path.join(DB_DIR, 'jobs.xml')
 #判断文件或者目录是否存在
 for dir in (SRC_DIR, BIN_DIR, TOOLS_DIR, RESULTS_DIR, DB_DIR):
     if not os.path.exists(dir):
-        os.makedirs(dir, mode=0777)
+        os.makedirs(dir, mode=0o777)
     elif not os.path.isdir(dir):
         os.remove(dir) 
-        os.makedirs(dir, mode=0777) 
+        os.makedirs(dir, mode=0o777) 
     else:
         pass
     
@@ -189,7 +189,7 @@ class BaseTest(lptxml.XmlResults):
             try:
                 getValue = valueType(getValue)
             except Exception:
-                raise FormatterError, getValue
+                raise FormatterError(getValue)
             return getValue
             
     def get_config_array(self, tool_node, key, defaultValue):
@@ -206,7 +206,7 @@ class BaseTest(lptxml.XmlResults):
             getList = defaultValue
         finally:
             if not isinstance(getList, list):
-                raise TypeError, getList
+                raise TypeError(getList)
             return getList
        
          
@@ -293,7 +293,7 @@ class BaseTest(lptxml.XmlResults):
             lptlog.info("%s 保存到 %s :PASS" % (self.tool, self.result_xml))
         except Exception:
             #lptlog.exception("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
-            raise SaveXMLError, "%s 保存到 %s :FAIL" % (self.tool, self.result_xml)
+            raise SaveXMLError("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
            
     def txt_report(self, width=15, writeType='horizontal', tag_width=25, format='txt'):
         '''保存测试数据到xml成功后，生成简单的txt测试报告
@@ -313,6 +313,7 @@ class BaseTest(lptxml.XmlResults):
         '''
         try:
             if self.tar_src_dir:
+                lptlog.info(self.tar_src_dir)
                 shutil.rmtree(self.tar_src_dir)
                 lptlog.info("清理源目录 %s :PASS" % self.tar_src_dir)
             if self.processBin is not None and os.path.exists(self.processBin):
@@ -321,7 +322,7 @@ class BaseTest(lptxml.XmlResults):
             if self.processBin2 is not None and os.path.exists(self.processBin2):
                 os.remove(self.processBin2)
                 lptlog.info("清理Bin文件 %s :PASS" % self.processBin2)
-        except Exception, e:
+        except Exception as e:
             lptlog.warning('清理临时目录或文件：FAIL')
             lptlog.debug(e)
             #raise CleanError, e

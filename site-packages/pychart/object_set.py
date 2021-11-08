@@ -33,7 +33,7 @@ class Iterator(object):
         self.__idx = 0
     def reset(self):
         self.__idx = 0
-    def next(self):
+    def __next__(self):
         val = self.__set.nth(self.__idx)
         self.__idx += 1
         if self.__idx >= len(self.__set.list()):

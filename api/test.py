@@ -176,7 +176,7 @@ class BaseTest(lptxml.XmlResults):
             try:
                 getValue = valueType(getValue)
             except Exception:
-                raise FormatterError, getValue
+                raise FormatterError(getValue)
             return getValue
             
     def get_config_array(self, tool_node, key, defaultValue):
@@ -193,7 +193,7 @@ class BaseTest(lptxml.XmlResults):
             getList = defaultValue
         finally:
             if not isinstance(getList, list):
-                raise TypeError, getList
+                raise TypeError(getList)
             return getList
        
          
@@ -281,7 +281,7 @@ class BaseTest(lptxml.XmlResults):
         except Exception:
             #lptlog.exception("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
             #lptlog.error("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
-            raise SaveXMLError, "%s 保存到 %s :FAIL" % (self.tool, self.result_xml)
+            raise SaveXMLError("%s 保存到 %s :FAIL" % (self.tool, self.result_xml))
            
     def txt_report(self, width=15, writeType='horizontal', tag_width=25, format='txt'):
         '''保存测试数据到xml成功后，生成简单的txt测试报告

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,7 +12,7 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import coord
+from . import coord
 import math
 
 class T(coord.T):
@@ -26,7 +27,7 @@ class T(coord.T):
         "Generate the list of places for drawing tick marks."
         v = []
         if min <= 0:
-            raise Exception, "Min value (%s) < 0 in a log coordinate." % min
+            raise Exception("Min value (%s) < 0 in a log coordinate." % min)
         x = min
         while x <= max:
             v.append(x)
@@ -34,7 +35,7 @@ class T(coord.T):
         return v
     def get_min_max(self, dmin, dmax, interval):
         interval = interval or 10
-	dmin = max(0, dmin) # we can't have a negative value with a log scale.
+        dmin = max(0, dmin) # we can't have a negative value with a log scale.
         v = 1.0
         while v > dmin:
             v = v / interval

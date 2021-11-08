@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,18 +12,18 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import text_box
-import fill_style
-import line_style
-import pychart_util
-import chart_object
-import arrow
-import legend
-import font
-import pie_plot_doc
-import theme
+from . import text_box
+from . import fill_style
+from . import line_style
+from . import pychart_util
+from . import chart_object
+from . import arrow
+from . import legend
+from . import font
+from . import pie_plot_doc
+from . import theme
 
-from pychart_types import *
+from .pychart_types import *
 from types import *
 
 class T(chart_object.T):

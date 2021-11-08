@@ -4,13 +4,13 @@
 '''
 
 import os, shutil, re, stat, getpass
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog
 from lpt.lib.share import utils
 from lpt.lib import lptreport
-from share import method
+from .share import method
 from lpt.lib import sysinfo
 
 class TestControl(BaseTest):
@@ -156,7 +156,7 @@ class TestControl(BaseTest):
         file = os.path.join(self.tmp_dir, "bonnie.out")
         lptlog.debug("读取 %s 文件" % file)
         if not os.path.isfile(file):
-            raise IOError, "open %s Error" % file
+            raise IOError("open %s Error" % file)
         else:
             results_lines = utils.read_all_lines(file)
         

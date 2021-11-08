@@ -4,13 +4,13 @@
 '''
 
 import os, shutil, re, getpass
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog
 from lpt.lib.share import utils
 from lpt.lib import lptreport
-from share import method
+from .share import method
 from lpt.lib import sysinfo
 
 result_node_attrib = {'iter':'1', 'times':'1', 'parallel':'1', 'parallels':'1' }
@@ -25,7 +25,7 @@ class TestControl(BaseTest):
         self.times = None
         self.parallel_type = None
         self.parallels = None
-	utils.system("ulimit -n 100000", ignore_status=True)
+        utils.system("ulimit -n 100000", ignore_status=True)
        
     @method.print_deps_log
     def check_deps(self):
@@ -47,8 +47,15 @@ class TestControl(BaseTest):
             os.system("./autogen.sh")
             self.compile(configure_status=True, make_status=True)
             utils.copy(os.path.join(self.tar_src_dir, 'dbench'), self.processBin)
-            if not os.path.exists(os.path.join(self.tmp_dir, "loadfiles")):
-		          utils.copy(os.path.join(self.tar_src_dir, 'loadfiles'), os.path.join(self.tmp_dir, "loadfiles"))
+            lptlog.info('loadfiles-0')
+            lptlog.info(os.path.join(self.tmp_dir, "loadfiles"))
+            if not os.path.exists(os.path.join(self.tmp_dir, "client.txt")):
+                lptlog.info('loadfiles-1')
+                lptlog.info(os.path.join(self.tar_src_dir, 'client.txt'))
+                lptlog.info(os.path.join(self.tmp_dir, "loadfiles"))
+                #utils.copy(os.path.join(self.tar_src_dir, 'loadfiles'), os.path.join(self.tmp_dir, "loadfiles"))
+                utils.copy(os.path.join(self.tar_src_dir, 'client.txt'), os.path.join(self.tmp_dir, "client.txt"))
+                lptlog.info('loadfiles-2')
             os.chdir(self.lpt_root) 
                                  
     def run(self):
@@ -58,7 +65,8 @@ class TestControl(BaseTest):
         lptlog.info("----------获取测试参数")
         
         cmd = self.processBin
-        args = ['-B', 'fileio',  '-c', os.path.join(self.tmp_dir, 'loadfiles/client.txt'), '-R', '999999.99']
+        #args = ['-B', 'fileio',  '-c', os.path.join(self.tmp_dir, 'loadfiles/client.txt'), '-R', '999999.99']
+        args = ['-c', os.path.join(self.tmp_dir, 'client.txt'), '-R', '999999.99']
         
             #获取测试目录
         testdir = self.get_config_testdir(tool_node)
@@ -85,12 +93,12 @@ class TestControl(BaseTest):
         args.append("%d" % runtime)
         
             
-        warnuptime = self.get_config_value(tool_node, 'warnuptime', 120, valueType=int)
-        if warnuptime > runtime:
-            lptlog.warning("warnuptime 大于 runtime, warnuptime = runtime/5")
-            warnuptime = runtime/5
-        lptlog.info("预热时长: %s s" % warnuptime)
-        args.append("--warmup=%d" % warnuptime)
+        #warnuptime = self.get_config_value(tool_node, 'warnuptime', 120, valueType=int)
+        #if warnuptime > runtime:
+        #    lptlog.warning("warnuptime 大于 runtime, warnuptime = runtime/5")
+        #    warnuptime = runtime/5
+        #lptlog.info("预热时长: %s s" % warnuptime)
+        #args.append("--warmup=%d" % warnuptime)
         
         self.mainParameters["parameters"] = " ".join(["dbench"]+args)
         lptlog.info("----------运行测试脚本")

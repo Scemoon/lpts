@@ -4,7 +4,7 @@
 '''
 
 import os, shutil, re
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog
@@ -74,7 +74,7 @@ class TestControl(BaseTest):
         os.chdir(self.tar_src_dir)
         temp_result_list = glob.glob("./results/*[0-9]")
         if not temp_result_list:
-            raise NameError, "% result data not found.." % self.tool
+            raise NameError("% result data not found.." % self.tool)
         else:
             temp_result_file = temp_result_list[0]
         

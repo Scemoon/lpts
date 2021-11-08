@@ -2,11 +2,11 @@
 
 import os
 import time
-import lptxml
-from share import utils
-import lptlog
-import lptxls
-from error import  *
+from . import lptxml
+from . share import utils
+from . import lptlog
+from . import lptxls
+from . error import  *
 import xlwt
 import string
 from lpt.lib import readconfig
@@ -16,6 +16,12 @@ from multiprocessing import Process
 from signal import SIGTERM 
 from lpt.lib import sysinfo
 from lpt.lib import lmbench
+
+
+from .share import base_xls
+import xlwt
+from lpt.lib.share import utils
+
 try:
     from PIL import Image
 except  Exception:
@@ -122,7 +128,7 @@ class CFork:
                 os.kill(pid, SIGTERM)
                 time.sleep(0.1)
                 lptlog.info("Now, Kill Pid %s: PASS" % pid)
-        except OSError, err:
+        except OSError as err:
             lptlog.error("Kill pid %s :Error" % pid)
             
     @classmethod
@@ -218,7 +224,7 @@ class Report(lptxml.XmlResults):
             for key in self.tool_indexs:
                 parallel_result_list.append(self.get_result_text(average_nodes[0]), key)
         else:
-            raise ValueError, "平均值为空"
+            raise ValueError("平均值为空")
         return parallel_result_list
     
     
@@ -255,7 +261,12 @@ class TxtReport(Report):
         self.fp.close()
 
     def write(self, text, width=10, position='left', fillchar=' '):
-        newtext = utils.strwidth(text, width, position, fillchar)
+        if isinstance(text,bytes):
+            text_bak = str(text,'utf-8')
+        if isinstance(text,str):
+            text_bak = text
+        fill = bytes(' ','utf-8')
+        newtext = utils.strwidth(text_bak, width, position, fillchar)
         self.fp.write(newtext)
         
     def set_title(self):
@@ -382,7 +393,7 @@ class TxtReport(Report):
         result_parallel_nodes = self.get_parallel_nodes(parallel)
         if result_parallel_nodes is None:
             lptlog.warning("%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel))
-            raise TestException, "%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel)
+            raise TestException("%s 测试工具的 %s 并行测试数据为Null" %(tool, parallel))
         
         self.fp.write("\n")
         self.fp.write("\n")
@@ -551,7 +562,7 @@ class TxtReport(Report):
     def report(self):
         lptlog.debug("检查是否包含 %s result" % self.tool)
         if not self.check_tool_nodes():
-            raise ValueError, " %s 测试数据为空..." % self.tool
+            raise ValueError(" %s 测试数据为空..." % self.tool)
         #nodes = self.get_nodes()
         self.set_title()
         self.set_tool_description()
@@ -596,7 +607,7 @@ def txt_report(xml, tools_list, reportfile, width=15):
                     创建 %s 的  txt测试报告：PASS
                  --------------------------------------------------------------
             """ % tool)
-        except Exception, e:
+        except Exception as e:
             lptlog.exception("创建 %s 的  txt测试报告：FAIL" % tool)
             lptlog.error("""
                  --------------------------------------------------------------
@@ -727,13 +738,17 @@ class XlsReport(Report):
     def write_parallel_data_des(self, parallel, row):
         self.xls_write.write_cell(self.sheet, "%s Parallel Data" % parallel, row, 1)
         return row + 1
-    
+
     def write_parallel_hor_data(self, nodes, row):
-        
+        style = xlwt.XFStyle()
+        style.font = base_xls.font(bold=True, colour=0x08)
+        style.alignment = base_xls.alignment()
+        style.borders = base_xls.borders(line=0x01)
+        style.pattern = base_xls.pattern(solid_pattern=0x01, fore_colour=0x2A)
         for node in nodes:
-            self.xls_write.data_seq(self.sheet, self.get_times(node), row)
+            self.xls_write.data_seq_bak(self.sheet, self.get_times(node), row, style)
             node_dict = self.get_parallel_hor_data(node)
-            self.xls_write.data(self.sheet, map(float, [node_dict.get(index) for index in self.tool_indexs]), row, col_start_index=2)
+            self.xls_write.data(self.sheet, list(map(float, [node_dict.get(index) for index in self.tool_indexs])), row, col_start_index=2)
             row = row + 1
             
         return row
@@ -752,7 +767,7 @@ class XlsReport(Report):
             #else:
              #   self.sheet.col(1).width = len(utils.to_unicode(index)) * 367
             iter_dict = self.get_ver_data(index, parallel, nodes)
-            self.xls_write.data(self.sheet, map(float, [ iter_dict.get(iter) for iter in self.get_ver_data_title(nodes)]), row, col_start_index=2)
+            self.xls_write.data(self.sheet, list(map(float, [ iter_dict.get(iter) for iter in self.get_ver_data_title(nodes)])), row, col_start_index=2)
             row = row + 1
         return row
     
@@ -772,7 +787,7 @@ class XlsReport(Report):
     def _gen_index_graphic(self, index, graphic_name, title):
         Y_max = max(self.get_index_data(index))
         parallel_results_list = [self.get_parallels(), self.get_index_data(index)]
-        graphic = chart.Draw(map(list, zip(*parallel_results_list)), graphic_name, title)
+        graphic = chart.Draw(list(map(list, list(zip(*parallel_results_list)))), graphic_name, title)
         xais = graphic.set_X("parallels")
         yais = graphic.set_Y("Results", tic_interval=Y_max/5)
         ar = graphic.creat_area((300, 100), xais, yais)
@@ -786,7 +801,7 @@ class XlsReport(Report):
             index_name = os.path.join(tmpdir,"%s_%s_%s" % (index_name, self.tool, index))
             try:
                 self._gen_index_graphic(index, index_name, index)
-            except Exception,e:
+            except Exception as e:
                 lptlog.error("gen graphic error: %s" % e)
                 lptlog.exception("")
 
@@ -874,7 +889,7 @@ class XlsReport(Report):
                 self.xls_write.data_seq(self.sheet, self.get_times(node), row)
                 node_dict = self.get_parallel_hor_data(node)
                 keys = list(lmbench.lm_keys[lmbench.des.index(lm_des)])
-                self.xls_write.data(self.sheet, map(float,[node_dict.get(key) for key in keys] ), row, col_start_index=2)
+                self.xls_write.data(self.sheet, list(map(float,[node_dict.get(key) for key in keys] )), row, col_start_index=2)
                 row = row + 1
             row += 1
             #调整格式
@@ -886,14 +901,14 @@ class XlsReport(Report):
     def report(self):
         lptlog.debug("检查是否包含 %s result" % self.tool)
         if not self.check_tool_nodes():
-            raise ValueError, " %s 测试数据为空..."
+            raise ValueError(" %s 测试数据为空...")
         #nodes = self.get_nodes()
         if self.tool == "lmbench":
             self.lmbench_report()
             return
         lptlog.info("数据写入方式： %s" % self.writeType)
         lptlog.debug("写入标题")
-        colwidth = self._colswidth(self.writeType)
+        colwidth = int(self._colswidth(self.writeType))
         row = self.write_title(col_width=colwidth+1)
         row_des = row + 1
         row = self.write_tool_descriptions(row_des, colmin=1, colmax=1+colwidth)
@@ -953,7 +968,7 @@ def xls_report(xml, tools, reportfile, writeType="horizontal", chart=False):
                     创建 %s 的  xls测试报告：PASS
                  --------------------------------------------------------------
             """ % tool)
-        except Exception, e:
+        except Exception as e:
             lptlog.error("""
                  --------------------------------------------------------------
                     创建 %s 的  xls测试报告：FAIL
@@ -997,7 +1012,7 @@ def save_result(tool, result_file, xml_file, width=15, writeType='horizontal', t
         txtops = TxtReport()
         lptlog.info("创建 %s 的 %s 测试报告：PASS" %(tool, format))
         lptlog.info("%s txt测试报告保存于: %s" % (tool, result_file))
-    except Exception, e:
+    except Exception as e:
         #lptlog.exception("创建 %s 的 %s 测试报告：FAIL" %(tool, format))
         lptlog.error("创建 %s 的 %s 测试报告：FAIL" %(tool, format))
         lptlog.debug(e)
@@ -1010,8 +1025,8 @@ class ToolCompare(object):
     def __init__(self, tool, xmls_dict):
         self.tool = tool
         self.xmls_dict = xmls_dict
-        self.xmls_keys = xmls_dict.keys()
-        self.results_xml_list = xmls_dict.values()
+        self.xmls_keys = list(xmls_dict.keys())
+        self.results_xml_list = list(xmls_dict.values())
         self.tool_indexs = INDEX_KEYS[self.tool]
               
     def get_parallels(self):
@@ -1049,7 +1064,7 @@ class ToolCompare(object):
                 parallel_result_dict[key] = xmlresults.get_result_text(nodes[0], key)
             return parallel_result_dict
         else:
-            raise ToolCompareError, "nodes 期望不为空"
+            raise ToolCompareError("nodes 期望不为空")
         
 
     def get_index_result(self, index, result_xml):
@@ -1097,7 +1112,7 @@ class CompareToolXls(ToolCompare):
         if self.check_parallels():
             lptlog.debug("results中parallels相同")
         else:
-            raise ParallelsError, "%s 对比， parallels不同"  % self.tool
+            raise ParallelsError("%s 对比， parallels不同"  % self.tool)
         
         
     def _set_row_height(self, row, height):
@@ -1175,7 +1190,7 @@ class CompareToolXls(ToolCompare):
         for xml_name in self.xmls_keys:
             self.xls_write.data_seq(self.sheet, xml_name, row)
             result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
-            self.xls_write.data(self.sheet, map(float, [result_dict.get(index) for index in self.tool_indexs]), row, col_start_index=col+1)
+            self.xls_write.data(self.sheet, list(map(float, [result_dict.get(index) for index in self.tool_indexs])), row, col_start_index=col+1)
             row = row+1
             
         return row
@@ -1192,8 +1207,7 @@ class CompareToolXls(ToolCompare):
     def write_index_data(self, index, row, col=1):
         for xml_name in self.xmls_keys:
             self.xls_write.data_seq(self.sheet, xml_name, row)
-            #self.xls_write.data(self.sheet, map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values()), row, col_start_index=col+1)
-            self.xls_write.data(self.sheet, map(float, [self.get_index_result(index, self.xmls_dict[xml_name]).get(parallel) for parallel in self.parallels]), row, col_start_index=col+1)
+            self.xls_write.data(self.sheet, list(map(float, list(self.get_index_result(index, self.xmls_dict[xml_name]).values()))), row, col_start_index=col+1)
             row = row+1
             
         return row+1
@@ -1204,8 +1218,7 @@ class CompareToolXls(ToolCompare):
         @return: list, ie:[ (), ()], 其中一个list为parallel元组'''
         index_data_list = []
         for xml_name in self.xmls_keys:
-            #index_data = map(float, self.get_index_result(index, self.xmls_dict[xml_name]).values())
-            index_data = map(float, [self.get_index_result(index, self.xmls_dict[xml_name]).get(parallel) for parallel in self.parallels ])
+            index_data = list(map(float, list(self.get_index_result(index, self.xmls_dict[xml_name]).values())))
             index_data_list.append(index_data)
         index_data_list.insert(0, self.parallels)
     
@@ -1220,7 +1233,7 @@ class CompareToolXls(ToolCompare):
         return Y_max
               
     def __gen_index_graphic(self, index,  graphic_name, title):
-        graphic = chart.Draw(map(list, zip(*self._get_all_index_data(index))), graphic_name, title)
+        graphic = chart.Draw(list(map(list, list(zip(*self._get_all_index_data(index))))), graphic_name, title)
         Y_max = self._get_max_value(index)
         xais = graphic.set_X("parallels")
         yais = graphic.set_Y("Results", tic_interval=Y_max/6)
@@ -1236,7 +1249,7 @@ class CompareToolXls(ToolCompare):
         '''gen all index graphic'''
         for index in self.tool_indexs:
             graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
-            graphic = chart.Draw(map(list, zip(*self._get_all_index_data(index))), graphic_name, index)
+            graphic = chart.Draw(list(map(list, list(zip(*self._get_all_index_data(index))))), graphic_name, index)
             xais = graphic.set_X("parallels")
             yais = graphic.set_Y("Results")
             ar = graphic.creat_area((300, 100), xais, yais)
@@ -1251,13 +1264,13 @@ class CompareToolXls(ToolCompare):
         par_data_list = []
         for xml_name in self.xmls_keys:
            result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
-           par_data = map(float, [result_dict.get(index) for index in self.tool_indexs])
+           par_data = list(map(float, [result_dict.get(index) for index in self.tool_indexs]))
            par_data_list.append(par_data)
         par_data_list.insert(0, self.tool_indexs)
         return par_data_list
     
     def __gen_par_graphic(self, parallel, graphic_name, title):
-        graphic = chart.Draw(map(list, zip(*self._get_all_par_data(parallel))), graphic_name, title)
+        graphic = chart.Draw(list(map(list, list(zip(*self._get_all_par_data(parallel))))), graphic_name, title)
         xais = graphic.set_X("Index")
         yais = graphic.set_Y("Results")
         ar = graphic.creat_area((300, 100), xais, yais)
@@ -1275,7 +1288,7 @@ class CompareToolXls(ToolCompare):
         '''gen all par graphic'''
         for parallel in self.parallels:
             graphic_name = os.path.join(tmpdir,"%s_%s_P%d" % (graphic_name, self.tool, parallel))
-            graphic = chart.Draw(map(list, zip(*self._get_all_par_data(parallel))), graphic_name)
+            graphic = chart.Draw(list(map(list, list(zip(*self._get_all_par_data(parallel))))), graphic_name)
             xais = graphic.set_X("Index")
             yais = graphic.set_Y("Results")
             ar = graphic.creat_area((300, 100), xais, yais)
@@ -1294,7 +1307,7 @@ class CompareToolXls(ToolCompare):
                 self.gen_index_graphic(graphic_name)
             else:
                 self.gen_par_graphic(graphic_name)
-        except Exception,e:
+        except Exception as e:
             lptlog.error("gen graphic error:%s" %e)
       
     def _tran_png_to_bmp(self, pngfile):
@@ -1308,7 +1321,7 @@ class CompareToolXls(ToolCompare):
         try:
             graphic_name = os.path.join(tmpdir,"%s_%s_%s" % (graphic_name, self.tool, index))
             self.__gen_index_graphic(index, graphic_name, index)
-        except Exception,e:
+        except Exception as e:
             lptlog.error("gen graphic error")
             lptlog.debug(e)
         else:
@@ -1329,7 +1342,7 @@ class CompareToolXls(ToolCompare):
         try:
             graphic_name = os.path.join(tmpdir,"%s_%s_P%d" % (graphic_name, self.tool, parallel))
             self.__gen_par_graphic(parallel, graphic_name, parallel)
-        except Exception,e:
+        except Exception as e:
             lptlog.error("gen graphic error:%s" % e )
             #lptlog.exception('')
            
@@ -1371,7 +1384,7 @@ class CompareToolXls(ToolCompare):
                 self.xls_write.data_seq(self.sheet, xml_name, row)
                 result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
                 keys = list(lmbench.lm_keys[lmbench.des.index(lm_des)])
-                self.xls_write.data(self.sheet, map(float,[result_dict.get(key) for key in keys] ), row, col_start_index=2)
+                self.xls_write.data(self.sheet, list(map(float,[result_dict.get(key) for key in keys] )), row, col_start_index=2)
                 row += 1
             row = row+1
             
@@ -1454,7 +1467,7 @@ class Compare(object):
         self.input_name_list = input_name_list
         self.input_tools = input_tools
         
-    def get_cmp_num(self, limit=8):
+    def get_cmp_num(self, limit=80):
         '''限定对比数'''
         num = len(self.results_xml_list)
         if num < 2:
@@ -1469,9 +1482,9 @@ class Compare(object):
     
     def set_xml_name(self):
         if not self.input_name_list:
-            xml_name_list = [ "CMP_%s" % letter for letter in list(string.uppercase)]
+            xml_name_list = [ "CMP_%s" % letter for letter in list(string.ascii_uppercase)]
         else:
-            if len({}.fromkeys(self.input_name_list).keys()) < self.get_cmp_num():
+            if len(list({}.fromkeys(self.input_name_list).keys())) < self.get_cmp_num():
                 lptlog.warning("请输入正确的名称数，期望：不重复名称 >%d 个 " % self.get_cmp_num())
                 sys.exit()
             else:
@@ -1508,7 +1521,7 @@ class XlsCompare(Compare):
     def cmp_tools(self, chart=False):
         tools =  self.get_cmp_tools()
         if not tools:
-            raise ValueError, "result.xml中不包含相同的tool"
+            raise ValueError("result.xml中不包含相同的tool")
         lptlog.info("----最终对比工具: %s " % utils.list_to_str(tools))
          #写入system info
         lptlog.info("写入system environment")
@@ -1516,7 +1529,7 @@ class XlsCompare(Compare):
         infoxls.write_keys()
 
         col = 3
-        for key, value in self.xmls_dict.iteritems():
+        for key, value in self.xmls_dict.items():
             infoxls.write_values(value, key, col)
             col += 1
     

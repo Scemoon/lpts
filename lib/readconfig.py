@@ -5,8 +5,9 @@
 '''
 
 import os, sys
-import ConfigParser
+import configparser
 from lpt.lib import lptenv
+import imp
 
 LPTPATH = os.getenv('LPTROOT')
 #LPTPATH = lptenv.get_lpt_root()
@@ -20,15 +21,15 @@ class BaseConfig(object):
     读取每个工具的参数配置，并返回一个字典
     '''
     def __init__(self, config_file):
-        reload(sys)  
-        sys.setdefaultencoding('utf-8') 
+        imp.reload(sys)  
+        #sys.setdefaultencoding('utf-8') 
         self.config_file = config_file
         
         #检查parameter.conf是否存在，如果不存在将退出测试
         if not os.path.isfile(self.config_file):
             raise NameError("缺少 %s 配置文件"  % self.config_file)
         
-        self.cf=ConfigParser.ConfigParser()
+        self.cf=configparser.ConfigParser()
         self.cf.read(self.config_file)
         
     
