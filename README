@@ -5,6 +5,81 @@
                 ###################################################
 
 #########################################################################################################
+version:lpts-3.0.9
+
+1.解决lmbench在lpts套件编译fail问题
+  修改lpts-3.0.8/tools/lmbench-3.0-a9-1/scripts/build
+  + LDLIBS="${LDLIBS} -ltirpc"
+  + CFLAGS="${CFLAGS} -I/usr/include/tirpc"
+
+2.解决lmbench转换字符fail问题
+  修改lpts-3.0.8/tests/lmbench.py
+  + a = "sed -i \"s/4.19.0-/4190/g\" " + results_file #++ '4.19.0-'根据实际内核前七位进行修改
+  + os.system(a)
+
+3.解决lmbench在Arm架构运行fail问题
+  修改lpts-3.0.8/tools/lmbench-3.0-a9-1/scripts/os
+      OS="${MACHINE}-${SYSTEM}"
+    + if [ $MACHINE == "x86_64" ]
+      then
+          if [ -f ../scripts/gnu-os ]
+          then    OS=`../scripts/gnu-os | sed s/unknown-//`
+          fi
+          if [ -f ../../scripts/gnu-os ]
+          then    OS=`../../scripts/gnu-os | sed s/unknown-//`
+          fi
+    + else
+    +     OS="${MACHINE}-${SYSTEM}" #++ tidingxin 如果是aarch架构走else，x86架构走正常流程
+    + fi
+  fi
+  echo $OS
+
+4.解决osinfo表中glibc版本有误问题
+  修改lpts-3.0.8/lib/sysinfo.py
+  + def check_glibc_ver1():
+  +    glibc_ver = subprocess.getoutput('ldd --version').splitlines()[0]
+  +    glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
+  +    return glibc_ver
+  -  if utils.compare_versions(glibc_ver, ver) == -1:
+  -    raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
+  -                        (glibc_ver, ver))
+
+
+  + "Glibc":check_glibc_ver1(), 
+  - "Glibc":" ".join(platform.libc_ver()),
+
+5.解决unixbench并行数运行128并行fail问题
+  修改lpts-3.0.8/tools/UnixBench5.1.3-1/Run
+  + 'system'    => { 'name' => "System Benchmarks", 'maxCopies' => 128 }, #数字改为128
+
+
+7.添加ip和os信息到osinfo表中
+  修改lpts-3.0.8/lib/sysinfo.py
+  +  def get_host_ip():
+     """
+     查询本机ip地址
+     :return: ip
+     """
+  +  try:
+  +      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  +      s.connect(('8.8.8.8', 80))
+  +      ip = s.getsockname()[0]
+  +  finally:
+  +      s.close()
+  +  return ip
+
+  +  "IP" :get_host_ip(),
+  +  "OS": get_cmd_output("cat /etc/.productinfo").replace("\n", " "),
+
+    Author:tidingxin
+    Mail  :tixingxin@uniontech.com
+                   OR
+           gaomingyang@uniontech.com
+
+
+
+
+###############################################################################################################
 version:lpts-3.0.8
                 
   @ Linux Performance Test Suite 简称lpts, 是一款面向操作系统基准性能测试框架，测试面包括：
