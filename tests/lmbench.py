@@ -83,6 +83,8 @@ class TestControl(BaseTest):
         #os.chdir(self.tar_src_dir)
         #utils.system("./genResults.sh %s" % os.path.join(self.tmp_dir, "lmbench.out"))
         results_file = os.path.join(self.tmp_dir, "lmbench.out")
+        a = "sed -i \"s/4.19.0-/4190/g\" " + results_file
+        os.system(a)
         lm = lm_method.LmbenchData(results_file, self.times, self.parallels)
         lm_attrib= lm.get_basic()
         self.result_list = lm.get_data(attrib=lm_attrib)
