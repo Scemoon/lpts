@@ -11,6 +11,19 @@ import platform
 import subprocess
 
 import socket
+def get_host_ip():
+    """
+    查询本机ip地址
+    :return: ip
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+
+    return ip
 
 
 def get_memory_size(unit_format='m'):
@@ -336,10 +349,14 @@ def check_for_kernel_feature(feature):
 #def check_glibc_ver(ver):
 #    glibc_ver = subprocess.getoutput('ldd --version').splitlines()[0]
 #    glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
-    if utils.compare_versions(glibc_ver, ver) == -1:
-        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
-                              (glibc_ver, ver))
+#    if utils.compare_versions(glibc_ver, ver) == -1:
+#        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
+#                              (glibc_ver, ver))
 
+def check_glibc_ver1():
+    glibc_ver = subprocess.getoutput('ldd --version').splitlines()[0]
+    glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
+    return glibc_ver
 
 
 def check_kernel_ver(ver):
@@ -737,18 +754,21 @@ class OSInfo(object):
             
             "CardModel":"N/A",
             "speed":"N/A",
+            "IP" :get_host_ip(),
             
             #"Platform":platform.platform(),
             "Release":get_OSRelease(),
             "Build":get_OSBuild(),
             "Kernel":platform.release(),
             #"OS": get_cmd_output("cat /etc/os-release").replace("\n", " "),
+            "OS": get_cmd_output("cat /etc/.productinfo").replace("\n", " "),
             "Version":platform.version(),
             "Filesystem":get_RootFilesystem()[0],
             "FilesystemType":get_RootFilesystem()[1],
             "FilesystemSize":get_RootFilesystem()[2],
             "Gcc":get_gccVersion(),
-            "Glibc":" ".join(platform.libc_ver()),
+            #"Glibc":" ".join(platform.libc_ver()),
+            "Glibc":check_glibc_ver1(), 
             "JavaVersion": get_javaVersion()[0],
             "JavaBuild": get_javaVersion()[1],
             "JavaMode": get_javaVersion()[2],
