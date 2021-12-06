@@ -79,7 +79,7 @@ class ConfigToXml(readconfig.BaseConfig, base_xml.RWXml):
         else:
             #self.custom_sections = self.get_sections()  #获取全部
             #lptlog.error("测试工具为空， 请指定测试工具集")
-            raise CreateJobException, "测试工具为空， 请指定测试工具集"
+            raise CreateJobException("测试工具为空， 请指定测试工具集")
         return 
         
     def add_configparser_node(self, father_node, node_tag, node_attrib):
@@ -182,10 +182,10 @@ class Jobs(base_xml.RWXml):
         conftoxml.add_test_group(tools_list)
         try:
             conftoxml.add_configparser_node(job, 'tool', {'status':'no'})
-        except Exception, e:
+        except Exception as e:
             #lptlog.exception('parameter.conf转换xml失败')
             #lptlog.error('parameter.conf转换xml失败')
-            raise CreatNodeError, 'parameter.conf转换xml失败: %s' % e
+            raise CreatNodeError('parameter.conf转换xml失败: %s' % e)
         
         if job is None:
             raise CreatJobsError()
@@ -251,7 +251,7 @@ class Jobs(base_xml.RWXml):
         #python 2.7
         #return job_node.findall("tool[@status='no']")
         #python 2.6
-        return   filter(lambda x:x.get('status')=='no', job_node.findall("tool"))
+        return   [x for x in job_node.findall("tool") if x.get('status')=='no']
     
     def get_tool_attrib(self, tool_node, key):
         return self.get_node_attrib_value(tool_node, key)
@@ -361,7 +361,7 @@ def get_tool_node(tool, jobs_xml=JOBS_XML, job_node=None):
    #python 2.7
    # return job_node.find("tool[@id='%s']" % tool)
    #python 2.6
-    return filter(lambda x:x.get('id')==tool, jobs.get_tools_nodes(job_node))[0]
+    return [x for x in jobs.get_tools_nodes(job_node) if x.get('id')==tool][0]
 
         
 def get_job_result_file(jobs_xml=JOBS_XML, job_node=None):
@@ -424,12 +424,11 @@ class XmlResults(base_xml.RWXml):
     
         for result_list_one in result_list:
             result_node = self.create_node(result_node_tag, dict(result_node_attrib, **result_list_one[0]))
-            
             #测试数据以字典形式保存，字典是没有顺序的，unixbench输出有顺序，因此格式化key顺序，其他工具如果有需要可以在此定义
-            if result_node_tag in INDEX_KEYS.keys():
+            if result_node_tag in list(INDEX_KEYS.keys()):
                 keys = INDEX_KEYS.get(result_node_tag)
             else:
-                keys = result_list_one[1].keys()
+                keys = list(result_list_one[1].keys())
         
             for key in keys:
                 self.create_element(result_node, key, result_list_one[1][key])
@@ -439,9 +438,9 @@ class XmlResults(base_xml.RWXml):
         
     def get_result_tools(self):
         ''' 获取测试工具'''
-        tools = map(lambda x: x.tag, list(self.root))
+        tools = [x.tag for x in list(self.root)]
         #去除重复
-        return {}.fromkeys(tools).keys()
+        return list({}.fromkeys(tools).keys())
     
     def search_tool_result_nodes(self, tool_name):
         '''返回nodes(list)或None
@@ -452,7 +451,7 @@ class XmlResults(base_xml.RWXml):
         '''
         @return: list, get all element tag
         '''
-        return map(lambda x:x.tag, self.get_elements(node))
+        return [x.tag for x in self.get_elements(node)]
     
     def get_tool_result_parallels(self, tool_name, key='parallels'):
         '''返回测试并行数
@@ -468,7 +467,7 @@ class XmlResults(base_xml.RWXml):
         #return self.find_nodes_by_tag(self.root, "./%s[@parallel='%s']" % (tool_name, parallel))
         #python 2.6
        # print map(lambda x:x.get("parallel"), self.find_nodes_by_tag(self.root, "%s" % tool_name))
-        return filter(lambda x:x.get("parallel")==str(parallel), self.find_nodes_by_tag(self.root, "%s" % tool_name))
+        return [x for x in self.find_nodes_by_tag(self.root, "%s" % tool_name) if x.get("parallel")==str(parallel)]
     
     
     def search_tool_result_by_elementTag(self, tool_name, elementTag):
@@ -485,15 +484,13 @@ class XmlResults(base_xml.RWXml):
         #python 2.7
         #return self.find_text_by_tag(self.root, "%s[@iter='%s'][@parallel='%s']/%s" % (tool, times, parallel, element_tag))
         #python 2.6
-        match_nodes = filter(lambda x:x.get("parallel")==str(parallel) and x.get("iter")==str(times), 
-                             self.find_nodes_by_tag(self.root, tool))
-        return map(lambda y:self.find_text_by_tag(y, element_tag), match_nodes)
+        match_nodes = [x for x in self.find_nodes_by_tag(self.root, tool) if x.get("parallel")==str(parallel) and x.get("iter")==str(times)]
+        return [self.find_text_by_tag(y, element_tag) for y in match_nodes]
     
     
     def search_nodes_by_parallelAndtimes(self, tool, parallel, times):
         #python 2.6
-        match_nodes = filter(lambda x:x.get("parallel")==str(parallel) and x.get("iter")==str(times), 
-                             self.find_nodes_by_tag(self.root, tool))
+        match_nodes = [x for x in self.find_nodes_by_tag(self.root, tool) if x.get("parallel")==str(parallel) and x.get("iter")==str(times)]
         return match_nodes
     
     

@@ -4,13 +4,13 @@
 '''
 
 import os, shutil, re, getpass, stat
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog
 from lpt.lib.share import utils
 from lpt.lib import lptreport
-from share import method
+from .share import method
 from lpt.lib import sysinfo
 
      
@@ -18,7 +18,7 @@ class TestControl(BaseTest):
     '''
     继承BaseTest属性和方法
     '''
-    def __init__(self, jobs_xml, job_node, tool, tarball='iozone3_424.tar.bz2'):
+    def __init__(self, jobs_xml, job_node, tool, tarball='iozone3_430.tar.bz2'):
         super(TestControl, self).__init__(jobs_xml, job_node, tool, tarball)
         self.processBin = os.path.join(self.bin_dir, 'iozone')
         self.times = None
@@ -83,10 +83,10 @@ class TestControl(BaseTest):
         args.append(blocksize)
             
         self.times = self.get_config_value(tool_node, "times", 5, valueType=int)
-	direct_status = self.get_config_value(tool_node, "directio", "False", valueType=str)
-	if direct_status == "True":
-	    args.append("-I")
-	    lptlog.info("DirectIO: True")
+        direct_status = self.get_config_value(tool_node, "directio", "False", valueType=str)
+        if direct_status == "True":
+            args.append("-I")
+            lptlog.info("DirectIO: True")
         
         self.parallel_type = self.get_config_value(tool_node, "parallel_type", "process", valueType=str)
         if self.parallel_type  not in ("threads", "process"):

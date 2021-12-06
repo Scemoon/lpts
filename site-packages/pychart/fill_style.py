@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,16 +12,16 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import pychart_util
-import color
-import line_style
-import chart_object
-import object_set
+from . import pychart_util
+from . import color
+from . import line_style
+from . import chart_object
+from . import object_set
 import types
-import theme
-import fill_style_doc
-from pychart_types import *
-from scaling import *
+from . import theme
+from . import fill_style_doc
+from .pychart_types import *
+from .scaling import *
 
 _keys = {
     "bgcolor" : (color.T, color.white, "The background color."),

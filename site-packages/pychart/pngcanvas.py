@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -13,14 +14,14 @@
 #
 import sys
 import os
-import gs_frontend
-import theme
+from . import gs_frontend
+from . import theme
 
 class T(gs_frontend.T):
     def close(self):
         gs_frontend.T.close(self)
-	if self.__output_lines == []:
-	    return
+        if self.__output_lines == []:
+            return
 
         if theme.use_color:
             gs_args = "-sDEVICE=png256 -dTextAlphaBits=4 -q -dNOPAUSE" #PDS
@@ -38,7 +39,7 @@ class T(gs_frontend.T):
                 out_fd = sys.stdout
             else:
                 if not hasattr(self.__out_fname, "write"):
-                    raise Exception, "Expecting either a filename or a file-like object, but got %s" % self.__out_fname
+                    raise Exception("Expecting either a filename or a file-like object, but got %s" % self.__out_fname)
                 out_fd = self.__out_fname
             import tempfile
             temp_fname = tempfile.mktemp()

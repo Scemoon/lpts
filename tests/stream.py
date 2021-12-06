@@ -4,13 +4,13 @@
 '''
 
 import os, shutil,re
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog
 from lpt.lib.share import utils
 from lpt.lib import lptreport
-from share import method
+from .share import method
 
   
 class TestControl(BaseTest):

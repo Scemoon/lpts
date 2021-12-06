@@ -29,13 +29,17 @@ class XmlTree(object):
     
     
     def save_file(self):
-        self.tree.write(self.xml_file, encoding='utf-8')
+        print(self.xml_file)
+        #self.tree.write(self.xml_file, encoding='utf-8', xml_declaration=True)
+        self.tree.write(self.xml_file,encoding='utf-8')
+        #self.tree.write(self.xml_file,xml_declaration=True)
         
     
     def init_tree(self):
         '''
         获取tree对象
         '''
+        print(self.xml_file)
         self.tree = ET.parse(self.xml_file)
             
     def get_root(self):
@@ -75,7 +79,7 @@ class ElementRead(XmlTree):
         '''
         @return:[(name,value),(name, value)]
         '''
-        return node.items()
+        return list(node.items())
     
     def get_element_text(self, element):
         '''
@@ -85,7 +89,7 @@ class ElementRead(XmlTree):
 
     def get_node_attrib_keys(self, node):
         
-        return node.keys()
+        return list(node.keys())
     
     def get_node_attrib_value(self, node, key):
         '''

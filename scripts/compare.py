@@ -10,7 +10,7 @@ except ImportError:
     lptroot = os.path.split(current_dir)[0]
     if not os.getenv('LPTROOT'):
         os.environ['LPTROOT'] = lptroot  
-    import init_env
+    from . import init_env
     init_env.setup(lptroot)
     
 from lpt.lib.share import utils
@@ -29,14 +29,14 @@ if not os.path.isdir(DB_DIR):
 TOOLS = ('stream', 'lmbench', 'unixbench', 'dbench_fio', 'pingpong', "unixbench", "x11perf", "glxgears")
 
 def usage():
-    print '''
+    print('''
     Usage: compare.py [options] args
     options: -h --help, 帮助信息
              -t --test, 指定测试工具
              -f --file, 指定result database (xml)
              -n --name, 自定义输出名称
              -r --report, 指定需要保存的报告文件
-        '''
+        ''')
     sys.exit()
 
 

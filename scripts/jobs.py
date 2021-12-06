@@ -12,7 +12,7 @@ except ImportError:
     lptroot = os.path.split(current_dir)[0]
     if not os.getenv('LPTROOT'):
         os.environ['LPTROOT'] = lptroot  
-    import init_env
+    from . import init_env
     init_env.setup(lptroot)
      
 from lpt.lib import lptxml
@@ -47,7 +47,7 @@ def add_job(tools_list, jobs_xml=JOBS_XML, parameter=default_parameter, job_attr
                         ++++++++++++++++++
                          创建测试任务:PASS
                         ++++++++++++++++++''')
-    except CreateJobException, e:
+    except CreateJobException as e:
         lptlog.debug(e)
         lptlog.error('''
                         ++++++++++++++++++
@@ -62,12 +62,12 @@ def add_job(tools_list, jobs_xml=JOBS_XML, parameter=default_parameter, job_attr
                         ~~~~~~~~~~~~~~~~~~~~''')
     
 def usage():
-    print '''
+    print('''
 	Usage: jobs.py [options] args
 	options: -h --help, 帮助信息
              	 -t --test, 指定测试测试工具
 		 -g --group 指定测试工具组,用空格隔开,如"stream lmbench"
-        '''
+        ''')
     sys.exit()
         
 def getopts(argv=sys.argv):
@@ -82,7 +82,7 @@ def getopts(argv=sys.argv):
         usage()
 
     if len(argv) <= 1:
-	   usage()
+        usage()
 
     for opt,value in opts:
         if opt in ('-h','--help'):
@@ -97,10 +97,10 @@ def getopts(argv=sys.argv):
         if opt in ('-g', '--group'):
              value_list = value.split()
              for tools in  value_list:
-		          if tools in TOOLS:
-		              tools_list.append(tools)
+                    if tools in TOOLS:
+                        tools_list.append(tools)
         else:
-		      lptlog.warning('%s不是有效的测试工具，请核对工具名称' % tools)
+                        lptlog.warning('%s不是有效的测试工具，请核对工具名称' % tools)
     
     return tools_list
 

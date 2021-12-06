@@ -4,7 +4,7 @@
 '''
 
 import os, shutil, re
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog

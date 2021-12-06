@@ -6,7 +6,7 @@
 
 import os, sys, time
 import shutil
-import commands
+import subprocess
 import pickle
 import string
 import re
@@ -19,7 +19,7 @@ from lpt.lib import lptlog
 from lpt.lib.error import *
 #import subprocessFix as subprocess
 import subprocess
-import  magic
+from . import magic_bak
 
 try:
     import hashlib
@@ -151,17 +151,19 @@ def run_cmd(command, args=[], timeout=None, ignore_status=False, output_tee=None
     lptlog.debug("执行命令:%s" % command)
     p = subprocess.Popen(command,  stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, output_err = p.communicate()
-    
     if timeout and isinstance(timeout, int):
+        lptlog.info('sleep')
         time.sleep(timeout)
         retcode = p.poll()
         if retcode:
             lptlog.error('运行 %d 秒，%s 程序无响应' %(timeout, command))
             raise  CalledProcessError()
-    
+    output = str(output,'utf-8')
+    #output=output[2:-1]
     if p.wait():
         lptlog.error("执行命令: %s, 输出错误信息:\n%s" %(command, output_err))
         if not ignore_status:
+            lptlog.info('ignore_status')
             raise CalledProcessError(p.poll(), command)
     elif output_tee:
         lptlog.debug("执行命令: %s, 输出信息:\n %s" %(command, output))
@@ -226,13 +228,16 @@ def cat_file_to_cmd(file, command, ignore_status=False, return_output=False):
         run_cmd_to = system_output
     else:
         run_cmd_to = system
-
-    if magic.guess_type(file) == 'application/x-bzip2':
+    if magic_bak.guess_type_bak(file) == 'application/x-bzip2':
         cat = 'bzcat'
-    elif magic.guess_type(file) == 'application/x-gzip':
+        lptlog.info('bzcat')
+    elif magic_bak.guess_type_bak(file) == 'application/x-gzip':
         cat = 'zcat'
+        lptlog.info('zcat')
     else:
         cat = 'cat'
+        lptlog.info('cat')
+    lptlog.info('%s %s | %s' %(cat,file,command))
     return run_cmd_to('%s %s | %s' % (cat, file, command), ignore_status=ignore_status)
     
 def extract_tarball_to_dir(tarball, srcdir):
@@ -266,7 +271,10 @@ def configure(extra=None, configure='./configure'):
         args.append('--target=' + os.environ['CTARGET'])
     if extra:
         args.append(extra)
-
+    lptlog.info('configure:')
+    lptlog.info(configure)
+    lptlog.info('args:')
+    lptlog.info(args)
     system(configure, args=args)
 
 def make(extra='', make='make', timeout=None, ignore_status=False):
@@ -283,12 +291,12 @@ def has_gcc():
         lptlog.info("gcc 检查:PASS")
     else:
         lptlog.error("gcc 检查:FAIL")
-        raise DespendException, "gcc"
+        raise DespendException("gcc")
   
 def has_file(name, *args):
     for file in args:
         if not os.path.isfile(file):
-            raise DespendException, "缺少 %s 包"  % name 
+            raise DespendException("缺少 %s 包"  % name) 
         else:
             continue
     lptlog.info("%s 检查: PASS" % name )
@@ -297,7 +305,7 @@ def run_shell(cmd, args_list=[]):
     '''
         采用os.system执行shell
     '''
-    args_string_list = map(str, args_list)
+    args_string_list = list(map(str, args_list))
     commands = cmd + " " + " ".join(args_string_list)
     try:
         lptlog.debug("执行命令:%s" % commands)
@@ -312,7 +320,7 @@ def run_shell2(cmd, args_list=[], file=None):
         采用subprocess.call执行测试
     '''
     args_list.insert(0, cmd)
-    args_string_list = map(str, args_list)
+    args_string_list = list(map(str, args_list))
     
     lptlog.info("执行命令: %s" % " ".join(args_string_list))
                  
@@ -320,8 +328,10 @@ def run_shell2(cmd, args_list=[], file=None):
         fd = open(file, 'w')
     else:
         fd=None
-        
+    lptlog.info(file)
+    lptlog.info(args_string_list)
     status = subprocess.call(args_string_list, stdout=fd, stderr=fd)
+    #status = subprocess.call(args_string_list)
     
     if status > 0:
         lptlog.error("执行 %s 发生Error:" % " ".join(args_string_list))
@@ -334,13 +344,13 @@ def str_to_int(strings):
     '''
     把数字字符串转换成整型
     '''
-    return string.atoi(strings)
+    return int(strings)
 
 def string_to_float(string_list):
     '''字符数字转换成浮点型
     @return: list 
     '''
-    return map(lambda x:string.atof(x), string_list)
+    return [float(x) for x in string_list]
     
 
 def strwidth(strs, width=20, position='left', fillchar=' '):
@@ -390,7 +400,7 @@ def search_string_value(substr, strings, pos, ops=None):
 
 def int_to_str_list(int_list):
      
-    return map(str, int_list)
+    return list(map(str, int_list))
 
 
 def sum_list(num_list):
@@ -530,10 +540,10 @@ def gen_random_strs(num=5, custom=None):
         @param num: 选择数量
     '''
     if custom is None:
-    	strs = string.letters    
+    	strs = string.ascii_letters    
     else:
         strs = custom
-    return string.join(random.sample(strs, num), '')
+    return ''.join(random.sample(strs, num))
 
 #获取版本号
 def get_version(file):
@@ -545,7 +555,7 @@ def get_version(file):
 
 def to_unicode(strs, zfj="utf-8"):
     '''把strs转换成unicode字符'''
-    return strs.decode(zfj)
+    return strs.encode('utf-8').decode(zfj)
 
 def from_unicode(ustrs, zfj="utf-8"):
     return ustrs.encode(zfj)

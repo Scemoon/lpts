@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,7 +12,7 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import pychart_util
+from . import pychart_util
 import copy
 import math
 
@@ -26,16 +27,16 @@ def _convert_item(v, typ, line):
         try:
             return int(v)
         except ValueError:
-            raise ValueError, "Can't convert %s to int; line=%s" % (v, line)
+            raise ValueError("Can't convert %s to int; line=%s" % (v, line))
     elif typ == "f":
         try:
             return float(v)
         except ValueError:
-            raise ValueError, "Can't convert %s to float; line=%s" % (v, line)
+            raise ValueError("Can't convert %s to float; line=%s" % (v, line))
     elif typ == "s":
         return v
     else:
-        raise ValueError, "Unknown conversion type, type=%s; line=%s" % (typ,line)
+        raise ValueError("Unknown conversion type, type=%s; line=%s" % (typ,line))
         
 def parse_line(line, delim):
     if delim.find("%") < 0:
@@ -48,7 +49,7 @@ def parse_line(line, delim):
 
     while idx < len(delim):
         if delim[idx] != '%':
-            raise ValueError, 'Bad delimitor: "%s"' % delim
+            raise ValueError('Bad delimitor: "%s"' % delim)
         ch = delim[idx+1]
         idx += 2
         sep = ""
@@ -91,7 +92,7 @@ def extract_rows(data, *rows):
             out.append(data[r])
         return out
     except IndexError:
-        raise IndexError, "data=%s rows=%s" % (data, rows)
+        raise IndexError("data=%s rows=%s" % (data, rows))
     return out
 
 def extract_columns(data, *cols):
@@ -110,7 +111,7 @@ def extract_columns(data, *cols):
                 col.append(r[c])
             out.append(col)
     except IndexError:
-        raise IndexError, "data=%s col=%s" % (data, col)        
+        raise IndexError("data=%s col=%s" % (data, col))        
     return out
 
             
@@ -148,7 +149,7 @@ consisting of  XCOL'th element and the mean.
                     n += 1
             out.append((data[i][xcol], float(total) / n))
     except IndexError:
-        raise IndexError, "bad data: %s,xcol=%d,ycol=%d,width=%d" % (data,xcol,ycol,width)
+        raise IndexError("bad data: %s,xcol=%d,ycol=%d,width=%d" % (data,xcol,ycol,width))
     
     return out
     
@@ -166,8 +167,8 @@ which <func> returns True.
     
     out = []
     for r in data:
-	if func(r):
-	    out.append(r)
+        if func(r):
+            out.append(r)
     return out
 
 def transform(func, data):
@@ -201,7 +202,7 @@ def _try_open_file(path, mode, error_message):
     except TypeError:
         fd = path
         if not getattr(fd, "readline", None):
-            raise TypeError, error_message + "(got %s)" % str(fd)
+            raise TypeError(error_message + "(got %s)" % str(fd))
     return fd
 
 def _try_close_file(fd, path):
@@ -318,7 +319,7 @@ def median(data, freq_col=1):
         i += d[freq_col]
         if i >= median_idx:
             return d
-    raise Exception, "??? median ???"
+    raise Exception("??? median ???")
 
 def cut_extremes(data, cutoff_percentage, freq_col=1):
     nr_data = _nr_data(data, freq_col)
@@ -335,7 +336,7 @@ def cut_extremes(data, cutoff_percentage, freq_col=1):
                 r.append(x)
             i += d[freq_col]
             continue
-	elif i + d[freq_col] >= max_idx:
+        elif i + d[freq_col] >= max_idx:
             if i < max_idx and i + d[freq_col] >= max_idx:
                 x = copy.deepcopy(d)
                 x[freq_col] = x[freq_col] - (max_idx - i)
@@ -352,7 +353,7 @@ def mean(data, val_col, freq_col):
         sum += d[val_col] * d[freq_col]
         nr_data += d[freq_col]
     if nr_data == 0:
-	raise IndexError, "data is empty"
+        raise IndexError("data is empty")
 
     return sum / float(nr_data)
 
@@ -372,7 +373,7 @@ def mean_samples(data, xcol, ycollist):
                 v += elem[col]
             out.append( (elem[xcol], float(v) / numcol) )
     except IndexError:
-        raise IndexError, "bad data: %s,xcol=%d,ycollist=%s" % (data,xcol,ycollist)
+        raise IndexError("bad data: %s,xcol=%d,ycollist=%s" % (data,xcol,ycollist))
     
     return out
 
@@ -399,7 +400,7 @@ def stddev_samples(data, xcol, ycollist, delta = 1.0):
             
             
     except IndexError:
-        raise IndexError, "bad data: %s,xcol=%d,ycollist=%s" % (data,xcol,ycollist)
+        raise IndexError("bad data: %s,xcol=%d,ycollist=%s" % (data,xcol,ycollist))
     return out
 
 def nearest_match(data, col, val):

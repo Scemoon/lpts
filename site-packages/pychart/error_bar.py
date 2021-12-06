@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,15 +12,15 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import tick_mark
-import line_style
-import pychart_util
-import chart_object
-import fill_style
+from . import tick_mark
+from . import line_style
+from . import pychart_util
+from . import chart_object
+from . import fill_style
 import types
-import error_bar_doc
-import object_set
-from pychart_types import *
+from . import error_bar_doc
+from . import object_set
+from .pychart_types import *
 
 __doc__ = """Pychart offers several styles of error bars. Some of them
 only displays the min/max confidence interval, while others can display

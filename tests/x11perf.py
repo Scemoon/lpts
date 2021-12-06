@@ -4,7 +4,7 @@
 '''
 
 import os, shutil, re
-from test import BaseTest
+from .test import BaseTest
 from lpt.lib.error import *
 from lpt.lib import lptxml
 from lpt.lib import lptlog
@@ -56,7 +56,7 @@ class TestControl(BaseTest):
         if os.path.exists("/usr/bin/x11perf") or  os.path.exists("/usr/local/bin/x11perf"):
             lptlog.info("将使用系统x11perf程序")
         else:
-            raise ValueError, "请安装x11perf程序, xort-x11-apps"
+            raise ValueError("请安装x11perf程序, xort-x11-apps")
             lptlog.info("系统中并没有安装x11perf程序，由lpt安装x11perf-1.5.3程序，如果系统缺少依赖，请安装提示安装依赖")
             utils.has_file("libX11-devel", "/usr/include/X11/Xlib.h")
             utils.has_file("libXmu-devel", "/usr/include/X11/Xmu/Xmu.h")
@@ -91,7 +91,7 @@ class TestControl(BaseTest):
         os.chdir(self.tar_src_dir)
         temp_result_list = glob.glob("./results/*[0-9]")
         if not temp_result_list:
-            raise NameError, "% result data not found.." % self.tool
+            raise NameError("% result data not found.." % self.tool)
         else:
             temp_result_file = temp_result_list[0]
         
