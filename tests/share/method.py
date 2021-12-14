@@ -14,7 +14,7 @@ def append_sum_dict(sum_dict, result_dict):
     @param result_dict: 测试数据，结构参照run_test函数,result_dict为一组数据
     '''
    
-    for key in sum_dict.keys():
+    for key in list(sum_dict.keys()):
         sum_dict[key] = "%f" % (float(sum_dict[key]) + float(result_dict[key]))
                     
     return sum_dict
@@ -22,7 +22,7 @@ def append_sum_dict(sum_dict, result_dict):
 def append_average_dict(sum_dict, times, format="%.1f"):
     
     average_dict = {}
-    for key in sum_dict.keys():
+    for key in list(sum_dict.keys()):
         average_dict[key] = format  % (float(sum_dict[key])/times)
     
     return average_dict
@@ -47,12 +47,12 @@ def check_fileNone(*args):
     '''
     for file in args:
         if file is None or not os.path.isfile(file):
-            raise NameError, "upexpect file"
+            raise NameError("upexpect file")
         
 def check_none(*args):
     for arg in args:
         if arg is None:
-            raise NameError, "upexpect None"
+            raise NameError("upexpect None")
         
         
 def print_deps_log(func):

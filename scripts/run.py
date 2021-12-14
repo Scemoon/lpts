@@ -10,7 +10,7 @@ except ImportError:
     lptroot = os.path.split(current_dir)[0]
     if not os.getenv('LPTROOT'):
         os.environ['LPTROOT'] = lptroot  
-    import init_env
+    from . import init_env
     init_env.setup(lptroot)
     
 from lpt.lib import lptxml
@@ -61,7 +61,7 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
     if job_id is None:
         try:
             job_node = jobs.get_new_job()
-        except IndexError,e:
+        except IndexError as e:
             lptlog.debug("job任务数为0， 期望非0")
             job_node = None
     else:
@@ -74,7 +74,7 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
             lptlog.debug("job任务数为0， 期望非0")
             job_node = None
         else:
-            job_filter_nodes = filter(lambda x: x.get("id")==str(job_id), job_nodes)
+            job_filter_nodes = [x for x in job_nodes if x.get("id")==str(job_id)]
             if job_filter_nodes:
                 job_node = job_filter_nodes[0]
             else:
@@ -83,25 +83,25 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
                
     if job_node is None:
         #lptlog.error()
-        raise MissXML, "没有找到对应的job任务， 请核对jobs.xml或者重新创建测试任务"
+        raise MissXML("没有找到对应的job任务， 请核对jobs.xml或者重新创建测试任务")
     
     #判断所有工具是否已经全部执行完毕
     no_exec_tools_nodes_list = jobs.get_noexec_tools_nodes(job_node)
     if not no_exec_tools_nodes_list:
         #lptlog.warning('任务中所有工具状态都已正确执行， 请重新创建测试任务')
-        raise TestOK, "任务中所有工具状态都已正确执行， 请重新创建测试任务"
+        raise TestOK("任务中所有工具状态都已正确执行， 请重新创建测试任务")
     else:
-        no_exec_tools = map(jobs.get_tool_name, no_exec_tools_nodes_list)
+        no_exec_tools = list(map(jobs.get_tool_name, no_exec_tools_nodes_list))
         
     if not tools_list:
         lptlog.debug("未指定测试工具，将默认执行job中未执行成功的测试工具")  
-        test_tools = map(jobs.get_tool_name, no_exec_tools_nodes_list)
+        test_tools = list(map(jobs.get_tool_name, no_exec_tools_nodes_list))
     else: #python 2.7 #tools = filter(lambda x:job_node.find("tool[@id='%s']" % x).get('status') == "no", tools_list) #python 2.6 #no_exec_tools = map(lambda y:y.get('id'), jobs.get_noexec_tools_nodes(job_node)) #tools = filter(lambda x:no_exec_tools.count(x)>0, tools_list)
         test_tools = [ tool for tool in no_exec_tools if tool in tools_list]
         
         if not test_tools:
             #lptlog.warning('指定运行的测试工具已经全部执行完毕, 请重新创建任务')
-            raise TestOK, '指定运行的测试工具已经全部执行完毕, 请重新创建任务'
+            raise TestOK('指定运行的测试工具已经全部执行完毕, 请重新创建任务')
         else:
             tools_string = " ".join(test_tools)
             lptlog.debug("尚未执行完毕的测试工具集:%s" % tools_string)
@@ -110,7 +110,7 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
         lptlog.info(__BEGIN_MSG % tool)
         try:
             control.run(tool, jobs_xml, job_node, clean=clean)
-        except Exception, e:
+        except Exception as e:
             lptlog.debug(e)
             lptlog.error('''
                     ----------------------------------
@@ -120,14 +120,14 @@ def run(job_id=None, tools_list=None, jobs_xml=JOBS_XML, format='txt', clean=Fal
             lptlog.info(__END_MSG % tool)
             #lptlog.exception("")
             if test_tools[-1] == tool:
-                raise TestOK, "Test Over, but Some Case FAIL"
+                raise TestOK("Test Over, but Some Case FAIL")
             else:
                 continue
         else:
             #python 2.7
             #jobs.set_tool_status(job_node.find("tool[@id='%s']" % tool), 'ok')
             #python 2.6
-            tool_node = filter(lambda x:x.get("id")==tool, jobs.get_tools_nodes(job_node))[0]
+            tool_node = [x for x in jobs.get_tools_nodes(job_node) if x.get("id")==tool][0]
             jobs.set_tool_status(tool_node, 'ok')
             jobs.save_file()  
             lptlog.info('''
@@ -153,9 +153,9 @@ def main():
     try:
         if not os.path.isfile(JOBS_XML):
             #lptlog.warning("jobs.xml文件不存在")
-            raise NameError, "%s 不存在"  % JOBS_XML
+            raise NameError("%s 不存在"  % JOBS_XML)
         run()
-    except Exception, e:
+    except Exception as e:
         lptlog.error('Debug Message: %s' % e)
     finally:
         lptlog.info(__STOP_MSG)

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,14 +12,14 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import color
-import line_style
-import fill_style
-import chart_object
-import object_set
-import pychart_util
-import tick_mark_doc
-from pychart_types import *
+from . import color
+from . import line_style
+from . import fill_style
+from . import chart_object
+from . import object_set
+from . import pychart_util
+from . import tick_mark_doc
+from .pychart_types import *
 
 _keys = {
     "line_style": (line_style.T, line_style.default, "The line style of the tick mark."),

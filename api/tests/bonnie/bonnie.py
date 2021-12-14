@@ -179,7 +179,7 @@ class bonnie(test.test, lpt_test.BaseTest):
         file = os.path.join(self.resultsdir, "bonnie.out")
         lptlog.debug("读取 %s 文件" % file)
         if not os.path.isfile(file):
-            raise IOError, "open %s Error" % file
+            raise IOError("open %s Error" % file)
         else:
             results_lines = lutils.read_all_lines(file)
 

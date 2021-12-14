@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 #
@@ -11,26 +12,26 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import doc_support
+from . import doc_support
 import sys
 import re
 import os
 
-import area
-import arrow
-import axis
-import bar_plot
-import line_plot
-import pie_plot
-import color
-import error_bar
-import fill_style
-import font
-import text_box
-import line_style
-import legend
-import range_plot
-import tick_mark
+from . import area
+from . import arrow
+from . import axis
+from . import bar_plot
+from . import line_plot
+from . import pie_plot
+from . import color
+from . import error_bar
+from . import fill_style
+from . import font
+from . import text_box
+from . import line_style
+from . import legend
+from . import range_plot
+from . import tick_mark
 
 indent = 4
 max_line_len = 64

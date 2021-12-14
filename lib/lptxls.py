@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 #
 
-from share import base_xls
+from .share import base_xls
 import xlwt
 from lpt.lib.share import utils
 
@@ -128,8 +128,10 @@ class Wxls(base_xls.Write):
         '''
         if data_title_list and isinstance(data_title_list, list):
             index = col_start_index
+            style = data_title_style()
             for data_title in data_title_list:
-                self.write(sheet, row, index, data_title, data_title_style())
+                self.write(sheet, row, index, data_title, style)
+                #self.write(sheet, row, index, data_title, data_title_style())
                 if len(utils.to_unicode(data_title)) * 367  > sheet.col(index).width:
                     sheet.col(index).width = len(utils.to_unicode(data_title)) * 367
                 index += 1
@@ -144,17 +146,25 @@ class Wxls(base_xls.Write):
                 font_colour = 0x0A
             else:
                 font_colour = 0x08
-        
         self.write(sheet, row, col, seq, data_seq_style(font_colour=font_colour))
         if len(utils.to_unicode(str(seq))) * 367  > sheet.col(col).width:
             sheet.col(col).width = len(utils.to_unicode(str(seq))) * 367
         
+    def data_seq_bak(self, sheet, seq, row, style, col=1):
+        '''写入测试次数,判断seq是否等于Average,如果为整型，将以整型写入，如果为字符，将以字符写入'''
+        self.write(sheet, row, col, seq, style)
+        if len(utils.to_unicode(str(seq))) * 367  > sheet.col(col).width:
+            sheet.col(col).width = len(utils.to_unicode(str(seq))) * 367
+
+
     def data(self, sheet, data_list, row, col_start_index=1):
         '''写入数据 '''
         if data_list and isinstance(data_list, list):
             index = col_start_index
+            style = data_style()
             for data in data_list:
-                self.write(sheet, row, index, data, data_style())
+                self.write(sheet, row, index, data, style)
+                #self.write(sheet, row, index, data, data_style())
                 index += 1
         
     def info(self, sheet, value, row, col):

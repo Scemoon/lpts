@@ -48,13 +48,14 @@ def import_module(module, from_where):
     @param from_where: Package from where the module is being imported.
     @return: The corresponding module.
     """
+    lptlog.info('import_module')
     from_module = __import__(from_where, globals(), locals(), [module])
     return getattr(from_module, module)
 
 
 def setup(base_path, root_module_name="lpt"):
         
-    if sys.modules.has_key(root_module_name):
+    if root_module_name in sys.modules:
     # already set up
         return
 

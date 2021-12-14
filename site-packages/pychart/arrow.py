@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,17 +12,17 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import line_style
-import color
-import chart_object
-import object_set
+from . import line_style
+from . import color
+from . import chart_object
+from . import object_set
 import math
-import arrow_doc
-import canvas
+from . import arrow_doc
+from . import canvas
 
-from pychart_types import *
+from .pychart_types import *
 from types import *
-from scaling import *
+from .scaling import *
 
 __doc__ = """
 Arrow is an optional component of a chart that draws line segments with
@@ -71,7 +72,7 @@ def draw_arrowhead(can, tailx, taily, tipx, tipy, thickness, head_len, style):
         can.lineto(base + head_len/2.0, halfthickness)
         can.closepath()
     else:
-        raise Exception, "Arrow style must be a number between 0 and 3."
+        raise Exception("Arrow style must be a number between 0 and 3.")
     can.fill()
     can.pop_transformation()
     can.comment("end ARROWHEAD.\n")

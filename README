@@ -1,9 +1,54 @@
-
-		###################################################
-	       #					           #
-	       #           Linux Performance Test Suite	           #
-	       #						   #
                 ###################################################
+               #                                                   #
+               #           Linux Performance Test Suite            #
+               #                                                   #
+                ###################################################
+
+#########################################################################################################
+version:lpts-3.0.9
+
+1.解决osinfo表中glibc版本有误问题
+  修改lpts-3.0.8/lib/sysinfo.py
+  + def check_glibc_ver1():
+  +    glibc_ver = subprocess.getoutput('ldd --version').splitlines()[0]
+  +    glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
+  +    return glibc_ver
+  -  if utils.compare_versions(glibc_ver, ver) == -1:
+  -    raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
+  -                        (glibc_ver, ver))
+
+
+  + "Glibc":check_glibc_ver1(), 
+  - "Glibc":" ".join(platform.libc_ver()),
+
+2.添加ip和os信息到osinfo表中
+  修改lpts-3.0.8/lib/sysinfo.py
+  +  def get_host_ip():
+     """
+     查询本机ip地址
+     :return: ip
+     """
+  +  try:
+  +      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  +      s.connect(('8.8.8.8', 80))
+  +      ip = s.getsockname()[0]
+  +  finally:
+  +      s.close()
+  +  return ip
+
+  +  "IP" :get_host_ip(),
+  +  "OS": get_cmd_output("cat /etc/.productinfo").replace("\n", " "),
+
+    Author:tidingxin
+    Mail  :tixingxin@uniontech.com
+                   OR
+           gaomingyang@uniontech.com
+
+
+
+
+###############################################################################################################
+version:lpts-3.0.8
                 
   @ Linux Performance Test Suite 简称lpts, 是一款面向操作系统基准性能测试框架，测试面包括：
 CPU、Mem、Net、IO. Linux基准性能不同于白盒性能测试，它往往涉及操作系统底层结构，要求测试人员

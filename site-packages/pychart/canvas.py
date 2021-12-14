@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -12,13 +13,15 @@
 # for more details.
 #
 import sys
-import basecanvas
-import pscanvas
-import pdfcanvas
-import svgcanvas
-import pngcanvas
-import x11canvas
-import theme
+import atexit
+import atexit
+from . import basecanvas
+from . import pscanvas
+from . import pdfcanvas
+from . import svgcanvas
+from . import pngcanvas
+from . import x11canvas
+from . import theme
 import re
 
 invalid_coord = -999999
@@ -116,10 +119,10 @@ def show(x, y, str):
     default_canvas().show(x, y, str)
     
 
-if not vars(sys).has_key("exitfunc"):
-    sys.exitfunc = _exit
+if "exitfunc" not in vars(sys):
+    atexit.register(_exit)
 elif sys.exitfunc != _exit:
     _oldexitfunc = sys.exitfunc
-    sys.exitfunc = _exit
+    atexit.register(_exit)
 
 #theme.add_reinitialization_hook(lambda: init(None))

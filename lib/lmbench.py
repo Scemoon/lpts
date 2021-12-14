@@ -96,13 +96,13 @@ class LmbenchData:
         return basic_dic
     
     def _append_sum_dict(self, sum_dict, result_dict):
-        for key in sum_dict.keys():
+        for key in list(sum_dict.keys()):
             sum_dict[key] = self._set_float_formt(float(sum_dict[key]) + float(result_dict[key]))
         return sum_dict
     
     def _append_average_dict(self, sum_dict):
         average_dict = {}
-        for key in sum_dict.keys():
+        for key in list(sum_dict.keys()):
             average_dict[key] = self._set_float_formt(float(sum_dict[key])/self.times)
         return average_dict
 

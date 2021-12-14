@@ -4,9 +4,27 @@
 '''
 
 import os,re
+#import os
+import regex as re
 from lpt.lib.share import utils
 import platform
-import commands
+import subprocess
+
+import socket
+def get_host_ip():
+    """
+    查询本机ip地址
+    :return: ip
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+
+    return ip
+
 
 def get_memory_size(unit_format='m'):
     '''获取内存大小
@@ -123,7 +141,7 @@ def get_cpu_vendor_name():
     }
 
     cpu_info = get_cpu_info()
-    for vendor, identifiers in vendors_map.items():
+    for vendor, identifiers in list(vendors_map.items()):
         for identifier in identifiers:
             if list_grep(cpu_info, identifier):
                 return vendor
@@ -171,7 +189,7 @@ def get_file_arch(filename):
 
 def count_cpus():
     """number of CPUs in the local machine according to /proc/cpuinfo"""
-    f = file('/proc/cpuinfo', 'r')
+    f = open('/proc/cpuinfo', 'r')
     cpus = 0
     for line in f.readlines():
         if line.lower().startswith('processor'):
@@ -229,8 +247,8 @@ def dump_object(object):
 
     kind of like dir()
     """
-    for item in object.__dict__.iteritems():
-        print item
+    for item in object.__dict__.items():
+        print(item)
         try:
             (key, value) = item
             dump_object(value)
@@ -240,7 +258,7 @@ def dump_object(object):
 
 def environ(env_key):
     """return the requested environment variable, or '' if unset"""
-    if (os.environ.has_key(env_key)):
+    if (env_key in os.environ):
         return os.environ[env_key]
     else:
         return ''
@@ -328,12 +346,17 @@ def check_for_kernel_feature(feature):
  #   return cpus
 
 
-def check_glibc_ver(ver):
-    glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
+#def check_glibc_ver(ver):
+#    glibc_ver = subprocess.getoutput('ldd --version').splitlines()[0]
+#    glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
+#    if utils.compare_versions(glibc_ver, ver) == -1:
+#        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
+#                              (glibc_ver, ver))
+
+def check_glibc_ver1():
+    glibc_ver = subprocess.getoutput('ldd --version').splitlines()[0]
     glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
-    if utils.compare_versions(glibc_ver, ver) == -1:
-        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
-                              (glibc_ver, ver))
+    return glibc_ver
 
 
 def check_kernel_ver(ver):
@@ -588,7 +611,7 @@ def get_uptime():
     """
 
     cmd = "/bin/cat /proc/uptime"
-    (status, output) = commands.getstatusoutput(cmd)
+    (status, output) = subprocess.getstatusoutput(cmd)
     if status == 0:
         return output.split()[0]
     else:
@@ -598,7 +621,7 @@ def read_cpuinfo(match):
     '''  match must include two group
     return (name, value)'''
     cpuinfo = open('/proc/cpuinfo').read()
-    re_match = re.findall(r'%s' % match, cpuinfo, re.I)
+    re_match = re.findall(r'%s' %match, cpuinfo, re.I)
     if re_match:
         return re_match[-1]
     else:
@@ -639,7 +662,7 @@ def get_RootFilesystem():
 def get_gccVersion():
     try:
         #output = utils.system_output('java -version')
-        output = commands.getoutput("gcc -v")
+        output = subprocess.getoutput("gcc -v")
         return output.split("\n")[-1]
     except Exception:
         return "N/A"
@@ -647,14 +670,14 @@ def get_gccVersion():
 def get_javaVersion():
     try:
         #output = utils.system_output('java -version')
-        output = commands.getoutput("java -version")
+        output = subprocess.getoutput("java -version")
         return (output.split("\n")[0], output.split("\n")[1], output.split("\n")[2])
     except Exception:
         return ("N/A","N/A","N/A")
     
 def get_cmd_output(cmd):
     try:
-        output = commands.getoutput(cmd)
+        output = subprocess.getoutput(cmd)
         return output
     except Exception:
         return "N/A"
@@ -687,7 +710,7 @@ def get_services():
     
 def get_OSRelease():
     try:
-        status, output = commands.getstatusoutput("cat /etc/*-release")
+        status, output = subprocess.getstatusoutput("cat /etc/*-release")
         if status >0:
             return "N/A"
         else:
@@ -697,7 +720,7 @@ def get_OSRelease():
    
 def get_OSBuild():
     try:
-        status ,output = commands.getstatusoutput("cat /etc/*-Version").split("\n")
+        status ,output = subprocess.getstatusoutput("cat /etc/*-Version").split("\n")
         if status >0:
             return "N/A"
         else:
@@ -731,17 +754,21 @@ class OSInfo(object):
             
             "CardModel":"N/A",
             "speed":"N/A",
+            "IP" :get_host_ip(),
             
             #"Platform":platform.platform(),
             "Release":get_OSRelease(),
             "Build":get_OSBuild(),
             "Kernel":platform.release(),
+            #"OS": get_cmd_output("cat /etc/os-release").replace("\n", " "),
+            "OS": get_cmd_output("cat /etc/.productinfo").replace("\n", " "),
             "Version":platform.version(),
             "Filesystem":get_RootFilesystem()[0],
             "FilesystemType":get_RootFilesystem()[1],
             "FilesystemSize":get_RootFilesystem()[2],
             "Gcc":get_gccVersion(),
-            "Glibc":" ".join(platform.libc_ver()),
+            #"Glibc":" ".join(platform.libc_ver()),
+            "Glibc":check_glibc_ver1(), 
             "JavaVersion": get_javaVersion()[0],
             "JavaBuild": get_javaVersion()[1],
             "JavaMode": get_javaVersion()[2],
@@ -761,8 +788,8 @@ class OSInfo(object):
                  "CPU":["CpuVendor", "CpuModel", "CpuMhz", "Processor", "Arch", "PhysicalCpu", "CpuCores", "LogicCpu", "BogoMIPS"],
                  "Mem":["MemModel", "MemMhz", "MemTotal", "SwapTotal",  "Shmem", "VmallocTotal",  "Hugepagesize"],
                  "Disk":["DiskInfo", "DiskSize"],
-                 "Network":["CardModel", "speed"],
-                 "OS": [ "Release", 'Build', "Kernel", "Version",  "KernelCmd", "Runlevel", "IOSchedule",
+                 "Network":["CardModel", "speed", "IP"],
+                 "OS": [ "Release", 'Build', "Kernel", "OS", "Version",  "KernelCmd", "Runlevel", "IOSchedule",
                         "Filesystem", "FilesystemType","FilesystemSize", 
                         "Gcc", "Glibc", "JavaVersion", "JavaBuild", "JavaMode", "Python",
                         "RpmNums", "IPtables", "SELinux", "Servers"],
@@ -770,14 +797,14 @@ class OSInfo(object):
     type_keys = ["CPU", "Mem", "Disk", "Network", "OS"]
     
     def __setitem__(self, item, value):
-        if self.keys.has_key(item):
+        if item in self.keys:
             self.keys[item] = value
             
     def __getitem__(self, item):
-        if self.keys.has_key(item):
+        if item in self.keys:
             return self.keys[item]
         
     def get_type_keys(self, type):
         '''type = CPU、Mem、OS、Hard'''
-        if self.type_keys.has_key(type):
+        if type in self.type_keys:
             return self.type_keys[type]

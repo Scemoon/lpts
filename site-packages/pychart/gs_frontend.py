@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -11,15 +12,15 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 #
-import pychart_util
-import theme
+from . import pychart_util
+from . import theme
 import sys
 import os
 import os.path
-import pscanvas
+from . import pscanvas
 import tempfile
-import basecanvas
-from scaling import *
+from . import basecanvas
+from .scaling import *
 
 def _get_gs_path():
     """Guess where the Ghostscript executable is
@@ -31,7 +32,7 @@ def _get_gs_path():
             g = os.path.join(dir, name)
             if os.path.exists(g):
                 return g
-    raise Exception, "Ghostscript not found. path=%s" % str(path)
+    raise Exception("Ghostscript not found. path=%s" % str(path))
 
 class T(pscanvas.T):
     """This class is a special kind of canvas that runs ghostscript
@@ -60,8 +61,8 @@ class T(pscanvas.T):
         
         gs_path = _get_gs_path()
         self.pipe_fp = None
-	if self.__output_lines == []:
-	    return
+        if self.__output_lines == []:
+            return
 
         if sys.platform != "win32" and hasattr(os, "popen"):
             # UNIX-like systems

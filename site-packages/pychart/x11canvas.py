@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #
 # Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
 # 
@@ -12,8 +13,8 @@
 # for more details.
 #
 import os
-import gs_frontend
-import theme
+from . import gs_frontend
+from . import theme
 import sys
 
 class T(gs_frontend.T):

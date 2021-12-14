@@ -6,9 +6,12 @@
 
 import os
 import sys
-import new
+#import new
 import imp
+import types
+#from types import ModuleType as module
 
+#from types import CodeType as code
 
 def get_lpt_root():
     '''
@@ -35,7 +38,7 @@ def _create_module(name):
     """
     添加 module 到 sys.modules
     """
-    module = new.module(name)
+    module = types.ModuleType(name)
     sys.modules[name] = module
     return module
     
@@ -54,7 +57,7 @@ def _create_module_and_parents(name):
     # now, create any remaining child modules
     while parts:
         child_name = parts.pop(0)
-        module = new.module(child_name)
+        module = types.module(child_name)
         setattr(parent, child_name, module)
         created_parts.append(child_name)
         sys.modules[".".join(created_parts)] = module
@@ -74,7 +77,7 @@ def import_module(module, from_where):
 
 def setup(base_path, root_module_name="lpt"):
         
-    if sys.modules.has_key(root_module_name):
+    if root_module_name in sys.modules:
     # already set up
         return
 
