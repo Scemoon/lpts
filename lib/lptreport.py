@@ -1186,13 +1186,53 @@ class CompareToolXls(ToolCompare):
             #if len(utils.to_unicode(self.tool_indexs[x])) * 367 > self.sheet.col(col+1+x).width:
                # self.sheet.col(col+1+x).width = len(utils.to_unicode(self.tool_indexs[x])) * 367
     
-    def write_parallel_data(self, parallel, row, col=1):
+    # def write_parallel_data(self, parallel, row, col=1):
+    #     for xml_name in self.xmls_keys:
+    #         self.xls_write.data_seq(self.sheet, xml_name, row)
+    #         result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
+    #         self.xls_write.data(self.sheet, list(map(float, [result_dict.get(index) for index in self.tool_indexs])), row, col_start_index=col+1)
+    #         row = row+1   
+    #     return row
+
+    def write_parallel_data(self, parallel, row, flag,col=1):
+        listnum = []
         for xml_name in self.xmls_keys:
             self.xls_write.data_seq(self.sheet, xml_name, row)
             result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
-            self.xls_write.data(self.sheet, list(map(float, [result_dict.get(index) for index in self.tool_indexs])), row, col_start_index=col+1)
-            row = row+1
-            
+            self.xls_write.data(self.sheet, list(map(float, [result_dict.get(index) for index in self.tool_indexs])), row, col_start_index=col+1)     
+            list_num1 = list(map(float, [result_dict.get(index) for index in self.tool_indexs]))
+            listnum.append(list_num1)
+            row = row+1 
+
+        for ind,name in enumerate(self.xmls_keys):
+            if ind>=1:
+                com_xml_name = str(self.xmls_keys[0] + "与" + name + "数据差异")
+                self.xls_write.data_seq(self.sheet, com_xml_name , row)
+                list3 = []
+                list4 = []
+                for i in range(len(listnum[0])):
+                    list3.append(self.caculater(listnum[0][i],listnum[ind][i],flag)) 
+                self.xls_write.data(self.sheet, list(list3), row, col_start_index=col+1)
+                row = row+1
+                col = 2
+                if flag ==1:
+                    self.xls_write.data_seq(self.sheet, "优势方向：大" , row)
+                if flag ==0:
+                    self.xls_write.data_seq(self.sheet, "优势方向：小" , row)
+                for i in range(len(listnum[0])):
+                    list4.append(self.compare_res(list3[i]))
+                for m in list4:
+                    if m == "优":
+                        self.xls_write.data_cell_res(self.sheet,m,row,col,0x0C)
+                        col = col+1
+                    elif m == "劣":
+                        style = lptxls.data_style_bad()
+                        self.xls_write.data_cell_res(self.sheet,m,row,col,0x0A)
+                        col = col+1
+                    elif m == "持平":
+                        self.xls_write.data_cell_res(self.sheet,m,row,col,0x08)
+                        col = col+1
+                row = row+1
         return row
     
     def write_index_data_des(self, index, row):
@@ -1203,15 +1243,79 @@ class CompareToolXls(ToolCompare):
     def write_index_data_title(self, row, col=1):
         self.xls_write.data_title(self.sheet, ['TEST'], row, col_start_index=col)
         self.xls_write.data_title(self.sheet, ["Par %d" % parallel for parallel in self.parallels ], row, col_start_index=col+1)
-            
-    def write_index_data(self, index, row, col=1):
-        for xml_name in self.xmls_keys:
-            self.xls_write.data_seq(self.sheet, xml_name, row)
-            self.xls_write.data(self.sheet, list(map(float, list(self.get_index_result(index, self.xmls_dict[xml_name]).values()))), row, col_start_index=col+1)
-            row = row+1
-            
-        return row+1
+
+
+    # def write_index_data(self, index, row, col=1):
+    #     for xml_name in self.xmls_keys:
+    #         self.xls_write.data_seq(self.sheet, xml_name, row)
+    #         self.xls_write.data(self.sheet, list(map(float, list(self.get_index_result(index, self.xmls_dict[xml_name]).values()))), row, col_start_index=col+1)
+    #         row = row+1
+    #     return row+1
+ 
+    def write_index_data(self, index, row, flag,col=1):
     
+        listnum = []
+        for xml_name in self.xmls_keys:
+            print(xml_name)
+            self.xls_write.data_seq(self.sheet, xml_name, row)      
+            self.xls_write.data(self.sheet, list(map(float, list(self.get_index_result(index, self.xmls_dict[xml_name]).values()))), row, col_start_index=col+1)
+            list_num1 = list(self.get_index_result(index, self.xmls_dict[xml_name]).values())
+            listnum.append(list_num1)
+            row = row+1
+
+        for ind,name in enumerate(self.xmls_keys):
+            if ind>=1:
+                com_xml_name = str(self.xmls_keys[0] + "与" + name + "数据差异")
+                self.xls_write.data_seq(self.sheet, com_xml_name , row)
+                list3 = []
+                list4 = []
+                for i in range(len(listnum[0])):
+                    list3.append(self.caculater(listnum[0][i],listnum[ind][i],flag)) 
+                self.xls_write.data(self.sheet, list(list3), row, col_start_index=col+1)
+                row = row+1
+                col = 2
+                if flag ==1:
+                    self.xls_write.data_seq(self.sheet, "优势方向：大" , row)
+                if flag ==0:
+                    self.xls_write.data_seq(self.sheet, "优势方向：小" , row)
+                for i in range(len(listnum[0])):
+                    list4.append(self.compare_res(list3[i]))
+                for m in list4:
+                    if m == "优":
+                        self.xls_write.data_cell_res(self.sheet,m,row,col,0x0C)
+                        col = col+1
+                    elif m == "劣":
+                        style = lptxls.data_style_bad()
+                        self.xls_write.data_cell_res(self.sheet,m,row,col,0x0A)
+                        col = col+1
+                    elif m == "持平":
+                        self.xls_write.data_cell_res(self.sheet,m,row,col,0x08)
+                        col = col+1
+                row = row+1
+        return row
+
+    def caculater(self,numb1,numb2,fx=1):
+        if numb1 == 0 or numb2 == 0:
+            res1 = "%.2f%%" % (0 * 100)
+        else:
+            if fx == 1:
+                res = (numb1-numb2)/numb2
+            elif fx == 0:
+                res = (numb1-numb2)/numb2
+            res1 = "%.2f%%" % (res * 100)
+        return res1
+
+    def compare_res(self,value):
+        a = float(value.strip('%')) 
+        resValue = a/100.0 
+        comp_res = ""
+        if -0.03<=resValue<=0.03:
+            comp_res = "持平"
+        elif resValue < -0.03:
+            comp_res = "劣"
+        elif resValue > 0.03:
+            comp_res = "优"
+        return comp_res
    
     def _get_all_index_data(self, index):
         '''获取index所有xml数据中，tag为index的所有测试数据
@@ -1380,12 +1484,46 @@ class CompareToolXls(ToolCompare):
             row += 1
             
             parallel = self.get_parallels()[0]
+            listnum = []
             for xml_name in self.xmls_keys:
                 self.xls_write.data_seq(self.sheet, xml_name, row)
                 result_dict = self.get_parallel_result(self.xmls_dict[xml_name], parallel)
                 keys = list(lmbench.lm_keys[lmbench.des.index(lm_des)])
-                self.xls_write.data(self.sheet, list(map(float,[result_dict.get(key) for key in keys] )), row, col_start_index=2)
-                row += 1
+                self.xls_write.data(self.sheet, list(map(float,[result_dict.get(key) for key in keys] )), row, col_start_index=2) 
+                list_num1 = list(map(float,[result_dict.get(key) for key in keys] ))
+                listnum.append(list_num1)
+                row = row+1
+
+            for ind,name in enumerate(self.xmls_keys):
+                if ind>=1:
+                    com_xml_name = str(self.xmls_keys[0] + "与" + name + "数据差异")
+                    self.xls_write.data_seq(self.sheet, com_xml_name , row)
+                    list3 = []
+                    list4 = []
+                    for i in range(len(listnum[0])):
+                        list3.append(self.caculater(listnum[0][i],listnum[ind][i],flag)) 
+                    self.xls_write.data(self.sheet, list(list3), row, col_start_index=2)
+                    row = row+1
+                    if flag ==1:
+                        self.xls_write.data_seq(self.sheet, "优势方向：大" , row)
+                    if flag ==0:
+                        self.xls_write.data_seq(self.sheet, "优势方向：小" , row)
+                    col = 2
+                
+                    for i in range(len(listnum[0])):
+                        list4.append(self.compare_res(list3[i]))
+                    for m in list4:
+                        if m == "优":
+                            self.xls_write.data_cell_res(self.sheet,m,row,col,0x0C)
+                            col = col+1
+                        elif m == "劣":
+                            style = lptxls.data_style_bad()
+                            self.xls_write.data_cell_res(self.sheet,m,row,col,0x0A)
+                            col = col+1
+                        elif m == "持平":
+                            self.xls_write.data_cell_res(self.sheet,m,row,col,0x08)
+                            col = col+1
+                    row = row+1
             row = row+1
             
             #调整格式
@@ -1396,6 +1534,8 @@ class CompareToolXls(ToolCompare):
          
 def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="parallel", chart=False):
     ''' tool xls compare report'''
+    global flag
+    flag = 1
     tool_cmp_object = CompareToolXls(tool, tool_sheet, xls_object, xmls_dict)
     
     if tool == "lmbench":
@@ -1422,7 +1562,7 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
         for parallel in tool_cmp_object.parallels:
             tool_cmp_object.write_parallel_data_des(parallel, row)
             tool_cmp_object.write_parallel_data_title(row+1)
-            row = tool_cmp_object.write_parallel_data(parallel, row+2)
+            row = tool_cmp_object.write_parallel_data(parallel, row+2,flag)
             row = row + 1
             
             if colwidth <=4:
@@ -1434,10 +1574,22 @@ def compare_tool_xls(tool, tool_sheet, xls_object, xmls_dict, writeType="paralle
     elif writeType=="index":
        # row = 8
         #for parallel in tool_cmp_object.parallels:
-        for index in tool_cmp_object.tool_indexs:
+        for num,index in enumerate (tool_cmp_object.tool_indexs):
             tool_cmp_object.write_index_data_des(index, row)
+            if tool == "pingpong":
+                flag = 0
+            elif tool == "dbench_fio":
+                if num ==1:
+                    flag = 0
+                else:
+                    flag = 1
+            elif tool == "bonnie":
+                if "_cpu" in index:
+                    flag = 0
+                else:
+                    flag = 1
             tool_cmp_object.write_index_data_title(row+1)
-            row = tool_cmp_object.write_index_data(index, row+2)
+            row = tool_cmp_object.write_index_data(index, row+2,flag)
             row = row + 1
             if colwidth==2:
                 tool_cmp_object._set_col_width(2, 8000)
