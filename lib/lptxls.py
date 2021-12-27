@@ -54,6 +54,14 @@ def data_title_style():
     style.pattern = base_xls.pattern(solid_pattern=0x01, fore_colour=0x29)
     return style
 
+def data_style_bad():
+    style = xlwt.XFStyle()
+    style.font = base_xls.font(bold=True, colour=0x0A)
+    style.alignment = base_xls.alignment()
+    style.borders = base_xls.borders(line=0x01)
+    style.pattern = base_xls.pattern(solid_pattern=0x01, fore_colour=0x29)
+    return style
+
 def data_style():
     style = xlwt.XFStyle()
     style.font = base_xls.font(bold=True, colour=0x08)
@@ -166,7 +174,12 @@ class Wxls(base_xls.Write):
                 self.write(sheet, row, index, data, style)
                 #self.write(sheet, row, index, data, data_style())
                 index += 1
-        
+
+    def data_cell_res(self, sheet, data, row, col,colour):
+        '''写入数据 '''
+        # self.write(sheet, row, col_start_index,data, style)
+        self.write(sheet, row, col, data, data_seq_style(font_colour=colour))
+
     def info(self, sheet, value, row, col):
         '''写入单个cell'''
         self.write(sheet, row, col, value, info_style())
