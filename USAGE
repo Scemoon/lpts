@@ -10,6 +10,14 @@
      lpts采用python编写，但python2.x中subprocess.py存在bug影响工具正常执行，
   修复方法：执行scripts/patch.sh
 
+  @@ 执行方式一（新增reboot功能）：
+     执行文件 ./auto-service.sh
+     将lpts文件放在home路径下，检查层级结构是否如下:/home/lpts/reboot.sh
+     将flag.txt的值变更为1
+     将测试套中所有的文件权限更改为777
+     根据需求更改reboot文件中需要执行的工具
+
+  @@ 执行方法二
   @@ 创建测试任务
      1.确定需要选用的测试工具，如:stream
      2.修改parameters/default.conf中stream参数定义，如：
