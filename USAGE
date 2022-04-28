@@ -35,7 +35,10 @@
 	-n 指定job名称
 
       4.查看job
-        ./lpts.py -l 
+        ./lpts.py -l -f jobs.xml
+	参数说明：
+	-l 列出指定任务文件中的任务
+        -f 指定jobs.xml,不指定时，程序将自动指定为db/jobs.xml 
 	示例：
       JOBBID           JOBNAME                     resultsDB                        STATUS
 ------------------------------------------------------------------------------------------
