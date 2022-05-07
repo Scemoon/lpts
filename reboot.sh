@@ -42,11 +42,37 @@ do
               echo "5" >flag.txt
 		reboot
 	elif [ $line -eq "5" ]; then
-              ./lpts.py --create -t iozone -f  jobs.xml -p parameters/$parame  -n testname > /opt/iozone.txt 2>&1
-              echo $?
-              ./lpts.py --run -t iozone -f jobs.xml >>/opt/iozone.txt 2>&1
+              	mem_total=`free |  grep Mem | awk '{print $2}'`
+		mem_1=$(expr $mem_total + 512000)
+		echo $mem_1
+		num2=1024000
+		mem_e=`echo "sclae=0; $mem_1/$num2" | bc` 
+
+		for line_iozone in $(cat iozone_flag.txt)
+		do
+			if [ $line_iozone -eq "0" ]; then
+				mem_i=`echo "sclae=0; $mem_e/2" | bc` 
+				echo "1" >iozone_flag.txt
+				echo "5" >flag.txt
+			elif [ $line_iozone -eq "1" ]; then
+				mem_i=$mem_e
+				echo "2" >iozone_flag.txt
+				echo "5" >flag.txt
+			elif [ $line_iozone -eq "2" ]; then
+				mem_i=$(expr $mem_e \* 2)
+				echo "0" >iozone_flag.txt
+				echo "6" >flag.txt
+			fi
+		done
+
+		str1="64c FILESIZE  = $mem_i"
+		str2="g"
+		sed -i "$str1$str2" parameters/$parame
+		./lpts.py --create -t iozone -f  jobs.xml -p parameters/$parame  -n testname > /opt/iozone.txt 2>&1
 		echo $?
-              echo "6" >flag.txt
+		./lpts.py --run -t iozone -f jobs.xml >>/opt/iozone.txt 2>&1
+		echo $?
+   
 		reboot
 	elif [ $line -eq "6" ]; then
               ./lpts.py --create -t bonnie -f  jobs.xml -p parameters/$parame -n testname > /opt/bonnie.txt 2>&1
