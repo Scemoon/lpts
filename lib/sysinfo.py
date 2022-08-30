@@ -720,11 +720,11 @@ def get_OSRelease():
    
 def get_OSBuild():
     try:
-        status ,output = subprocess.getstatusoutput("cat /etc/*-Version").split("\n")
+        status ,output = subprocess.getstatusoutput("cat /etc/os-version")
         if status >0:
             return "N/A"
         else:
-            return output.split("\n")[-1]
+            return output.split("=")[-1]
     except Exception:
         return "N/A"
 
@@ -754,14 +754,14 @@ class OSInfo(object):
             
             "CardModel":"N/A",
             "speed":"N/A",
-            "IP" :get_host_ip(),
+            #"IP" :get_host_ip(),
             
             #"Platform":platform.platform(),
             "Release":get_OSRelease(),
             "Build":get_OSBuild(),
             "Kernel":platform.release(),
             #"OS": get_cmd_output("cat /etc/os-release").replace("\n", " "),
-            "OS": get_cmd_output("cat /etc/.productinfo").replace("\n", " "),
+            "OS": get_cmd_output("cat /etc/issue.net").replace("\n", " "),
             "Version":platform.version(),
             "Filesystem":get_RootFilesystem()[0],
             "FilesystemType":get_RootFilesystem()[1],
@@ -788,7 +788,7 @@ class OSInfo(object):
                  "CPU":["CpuVendor", "CpuModel", "CpuMhz", "Processor", "Arch", "PhysicalCpu", "CpuCores", "LogicCpu", "BogoMIPS"],
                  "Mem":["MemModel", "MemMhz", "MemTotal", "SwapTotal",  "Shmem", "VmallocTotal",  "Hugepagesize"],
                  "Disk":["DiskInfo", "DiskSize"],
-                 "Network":["CardModel", "speed", "IP"],
+                 "Network":["CardModel", "speed"],
                  "OS": [ "Release", 'Build', "Kernel", "OS", "Version",  "KernelCmd", "Runlevel", "IOSchedule",
                         "Filesystem", "FilesystemType","FilesystemSize", 
                         "Gcc", "Glibc", "JavaVersion", "JavaBuild", "JavaMode", "Python",
