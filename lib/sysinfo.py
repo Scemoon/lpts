@@ -732,14 +732,14 @@ def get_OSBuild():
 class OSInfo(object):
     '''get OS infor'''
     keys = { 
-            "CpuVendor":get_cpu_vendor_name(),
-            "CpuModel":read_cpuinfo('(\model\s+name|cpu\s+\model)\s+:\s+(.+)')[1],
-            "CpuMhz":read_cpuinfo('(cpu\s+mhz)\s+:\s+(\S+)')[1],
+            "CpuVendor":get_cmd_output("cat /proc/cpuinfo |grep -i vendor_id |head -n 1 |awk '{print $NF}'"),
+            "CpuModel":get_cmd_output("cat /proc/cpuinfo |grep -i model |head -n 1 |awk -F ':' '{print $2}'"),
+            "CpuMhz":get_cmd_output("cat /proc/cpuinfo |grep -i MHz |head -n 1 |awk '{print $NF}'"),
             "Processor":platform.processor(),
             "Arch":" ".join(platform.architecture()),
             "BogoMIPS":read_cpuinfo('(bogomips)\s+:\s+(\S+)')[1],
             "PhysicalCpu":get_physicalCPU(),
-            "CpuCores":read_cpuinfo('(cpu\s+cores)\s+:\s+(\S+)')[1],
+            "CpuCores":"%d" % count_cpus(),
             "LogicCpu":"%d" % count_cpus(),
             "MemModel":"N/A",
             "MemMhz":"N/A",
