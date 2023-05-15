@@ -3,6 +3,7 @@
     @summary: 获取操作系统软、硬件信息
 '''
 
+import logging
 import os,re
 #import os
 import regex as re
@@ -181,11 +182,14 @@ def get_current_kernel_arch():
 
 def get_file_arch(filename):
     # -L means follow symlinks
-    file_data = system_output('file -L ' + filename)
-    if file_data.count('80386'):
-        return 'i386'
-    return None
-
+    if os.path.isfile(filename):
+        file_data = subprocess.getoutput('file -L ' + filename)
+        if file_data.count('80386'):
+            return 'i386'
+        return None
+    else:
+        logging.error('file does not exist')
+        return False
 
 def count_cpus():
     """number of CPUs in the local machine according to /proc/cpuinfo"""
